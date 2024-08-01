@@ -8,6 +8,7 @@ const BusinessSchema = new mongoose.Schema({
   verified: { type: Boolean, default: false },
   stars: { type: Number, default: 0 },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  logo: { type: String },
   date: { type: Date, default: Date.now },
 });
 

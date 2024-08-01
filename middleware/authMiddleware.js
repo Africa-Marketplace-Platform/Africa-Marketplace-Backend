@@ -21,10 +21,17 @@ exports.protect = async (req, res, next) => {
   }
 };
 
+exports.premium = (req, res, next) => {
+  if (!req.user.premium) {
+    return res.status(403).json({ msg: 'Access denied, premium members only' });
+  }
+  next();
+};
+
 exports.authorize = (roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ msg: 'Access denied, insufficient role' });
+      return res.status(403).json({ msg: 'User role not authorized' });
     }
     next();
   };
@@ -36,14 +43,12 @@ exports.checkBusinessOwner = async (req, res, next) => {
     if (!business) {
       return res.status(404).json({ msg: 'Business not found' });
     }
-
     if (business.owner.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ msg: 'User is not the owner of the business' });
+      return res.status(401).json({ msg: 'User not authorized' });
     }
-
     next();
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ msg: 'Server error' });
   }
 };

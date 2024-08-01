@@ -7,7 +7,9 @@ const {
   getProductById,
   updateProduct,
   deleteProduct,
-  addProductReview
+  addProductReview,
+  bulkImportProducts,
+  bulkExportProducts
 } = require('../controllers/productController');
 
 // Only business owners and admins can create and manage products
@@ -17,5 +19,7 @@ router.get('/:id', getProductById);
 router.put('/:id', protect, authorize(['business_owner', 'admin']), updateProduct);
 router.delete('/:id', protect, authorize(['business_owner', 'admin']), deleteProduct);
 router.post('/:id/reviews', protect, addProductReview);
+router.post('/bulk-import', protect, authorize(['admin']), bulkImportProducts);
+router.get('/bulk-export', protect, authorize(['admin']), bulkExportProducts);
 
 module.exports = router;
