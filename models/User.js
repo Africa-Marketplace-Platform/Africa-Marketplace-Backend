@@ -14,9 +14,13 @@ const UserSchema = new mongoose.Schema({
   facebookId: { type: String },
   twitterId: { type: String },
   premium: { type: Boolean, default: false },
-  wishlistProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  wishlistServices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Service' }],
   date: { type: Date, default: Date.now },
+  wishlist: [
+    {
+      product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+      service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+    },
+  ],
 });
 
 UserSchema.pre('save', async function (next) {

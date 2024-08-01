@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const { createService, getServices, addReview } = require('../controllers/serviceController');
+const { protect, authorize } = require('../middleware/authMiddleware');
+const { createService, getServices, getServiceById, updateService, deleteService } = require('../controllers/serviceController');
 
-router.post('/', auth, createService);
+// Only business owners and admins can create and manage services
+router.post('/', protect, authorize(['business_owner', 'admin']), createService);
 router.get('/', getServices);
-router.post('/review', auth, addReview);
+router.get('/:id', getServiceById);
+router.put('/:id', protect, authorize(['business_owner', 'admin']), updateService);
+router.delete('/:id', protect, authorize(['business_owner', 'admin']), deleteService);
 
 module.exports = router;

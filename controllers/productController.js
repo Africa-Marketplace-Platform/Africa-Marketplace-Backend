@@ -1,27 +1,39 @@
 const Product = require('../models/Product');
+const upload = require('../config/multerConfig'); // Import the multer configuration
 
 exports.createProduct = async (req, res) => {
-  const { name, description, price, business, images, stock, category, tags, discount } = req.body;
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err });
+    }
 
-  try {
-    const product = new Product({
-      name,
-      description,
-      price,
-      business,
-      images,
-      stock,
-      category,
-      tags,
-      discount,
-    });
+    const { name, description, price, business, stock, category, tags, discount } = req.body;
+    let images = [];
 
-    await product.save();
-    res.status(201).json(product);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
+    if (req.files) {
+      images = req.files.map(file => file.path);
+    }
+
+    try {
+      const product = new Product({
+        name,
+        description,
+        price,
+        business,
+        images,
+        stock,
+        category,
+        tags,
+        discount,
+      });
+
+      await product.save();
+      res.status(201).json(product);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
 };
 
 exports.getProducts = async (req, res) => {
@@ -48,30 +60,41 @@ exports.getProductById = async (req, res) => {
 };
 
 exports.updateProduct = async (req, res) => {
-  const { name, description, price, images, stock, category, tags, discount } = req.body;
-
-  try {
-    let product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return res.status(404).json({ msg: 'Product not found' });
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err });
     }
 
-    product.name = name || product.name;
-    product.description = description || product.description;
-    product.price = price || product.price;
-    product.images = images || product.images;
-    product.stock = stock !== undefined ? stock : product.stock;
-    product.category = category || product.category;
-    product.tags = tags || product.tags;
-    product.discount = discount || product.discount;
+    const { name, description, price, stock, category, tags, discount } = req.body;
+    let images = req.body.images || [];
 
-    await product.save();
-    res.json(product);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
+    if (req.files) {
+      images = req.files.map(file => file.path);
+    }
+
+    try {
+      let product = await Product.findById(req.params.id);
+
+      if (!product) {
+        return res.status(404).json({ msg: 'Product not found' });
+      }
+
+      product.name = name || product.name;
+      product.description = description || product.description;
+      product.price = price || product.price;
+      product.images = images;
+      product.stock = stock !== undefined ? stock : product.stock;
+      product.category = category || product.category;
+      product.tags = tags || product.tags;
+      product.discount = discount || product.discount;
+
+      await product.save();
+      res.json(product);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
 };
 
 exports.deleteProduct = async (req, res) => {
