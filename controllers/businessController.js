@@ -1,4 +1,7 @@
 const Business = require("../models/Business");
+const Product = require("../models/Product");
+const Service = require("../models/Service");
+const InfluencerContent = require("../models/InfluencerContent");
 const upload = require("../middleware/multerConfig");
 
 // Create a new business
@@ -30,6 +33,7 @@ exports.createBusiness = async (req, res) => {
   });
 };
 
+// Get all businesses
 exports.getBusinesses = async (req, res) => {
   try {
     const businesses = await Business.find().populate("owner", "name email");
@@ -40,6 +44,7 @@ exports.getBusinesses = async (req, res) => {
   }
 };
 
+// Get business by ID
 exports.getBusinessById = async (req, res) => {
   try {
     const business = await Business.findById(req.params.id).populate("owner", "name email");
@@ -91,6 +96,7 @@ exports.updateBusiness = async (req, res) => {
   });
 };
 
+// Delete a business
 exports.deleteBusiness = async (req, res) => {
   try {
     const business = await Business.findById(req.params.id);
@@ -101,6 +107,58 @@ exports.deleteBusiness = async (req, res) => {
 
     await business.remove();
     res.json({ msg: "Business removed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+// Get products under a business
+exports.getProductsByBusiness = async (req, res) => {
+  try {
+    const products = await Product.find({ business: req.params.businessId });
+    res.json(products);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+// Get services under a business
+exports.getServicesByBusiness = async (req, res) => {
+  try {
+    const services = await Service.find({ business: req.params.businessId });
+    res.json(services);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+// Get influencers associated with a business
+exports.getInfluencersByBusiness = async (req, res) => {
+  try {
+    const influencerContent = await InfluencerContent.find({ business: req.params.businessId })
+      .populate("influencer", "name");
+
+    const influencers = influencerContent.map(content => content.influencer);
+
+    res.json(influencers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+// Get business analytics
+exports.getBusinessAnalytics = async (req, res) => {
+  try {
+    const businessId = req.params.businessId;
+    const productCount = await Product.countDocuments({ business: businessId });
+    const serviceCount = await Service.countDocuments({ business: businessId });
+    const influencerCount = await InfluencerContent.countDocuments({ business: businessId });
+
+    res.json({ productCount, serviceCount, influencerCount });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");

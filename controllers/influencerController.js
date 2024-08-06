@@ -1,6 +1,8 @@
+const InfluencerContent = require('../models/InfluencerContent');
 const Influencer = require('../models/Influencer');
-const upload = require('../middleware/multerConfig');
-
+const Business = require('../models/Business');
+const upload = require('../middleware/multerConfig'); // Middleware for file uploads
+const moderateContent = require('../middleware/moderationMiddleware');
 // Create a new influencer
 exports.createInfluencer = async (req, res) => {
   upload(req, res, async (err) => {
@@ -177,5 +179,63 @@ exports.deleteInfluencer = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
+  }
+};
+
+exports.postContent = async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+
+    const { businessId, content } = req.body;
+    const media = req.file ? `/uploads/media/${req.file.filename}` : '';
+
+    try {
+      // Moderate content before saving
+      await moderateContent(req, res, async () => {
+        const influencer = await Influencer.findById(req.user.id);
+        const business = await Business.findById(businessId);
+
+        if (!influencer || !business) {
+          return res.status(404).json({ message: 'Influencer or business not found' });
+        }
+
+        const newContent = new InfluencerContent({
+          influencer: influencer._id,
+          business: business._id,
+          content,
+          media
+        });
+
+        const savedContent = await newContent.save();
+        res.status(201).json(savedContent);
+      });
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+};
+
+// Get content by influencer
+exports.getContentByInfluencer = async (req, res) => {
+  try {
+    const content = await InfluencerContent.find({ influencer: req.params.influencerId }).populate('business', 'name');
+    res.json(content);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get content by business
+exports.getContentByBusiness = async (req, res) => {
+  try {
+    const content = await InfluencerContent.find({ business: req.params.businessId }).populate('influencer', 'name');
+    res.json(content);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 };

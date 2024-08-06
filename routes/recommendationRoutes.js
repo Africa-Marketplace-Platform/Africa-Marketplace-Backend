@@ -1,8 +1,9 @@
+// routes/recommendationRoutes.js
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware'); // Destructure to get 'protect' middleware
+const { protect } = require('../middleware/authMiddleware');
 const { getRecommendations } = require('../controllers/recommendationController');
 
-router.get('/', protect, getRecommendations); // Use 'protect' middleware
+router.get('/', protect, getRecommendations);
 
 module.exports = router;
