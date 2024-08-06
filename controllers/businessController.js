@@ -1,5 +1,5 @@
 const Business = require("../models/Business");
-const upload = require("../config/multerConfig");
+const upload = require("../middleware/multerConfig");
 
 // Create a new business
 exports.createBusiness = async (req, res) => {

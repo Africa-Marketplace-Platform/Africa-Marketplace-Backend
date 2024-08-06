@@ -1,37 +1,35 @@
 const Message = require('../models/Message');
-const User = require('../models/User');
 
+// Send a message
 exports.sendMessage = async (req, res) => {
-  const { receiverId, content } = req.body;
+  const { receiverId, message } = req.body;
 
   try {
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      return res.status(404).json({ msg: 'Receiver not found' });
-    }
-
-    const message = new Message({
+    const newMessage = new Message({
       sender: req.user.id,
       receiver: receiverId,
-      content,
+      message,
     });
 
-    await message.save();
-    res.status(201).json(message);
+    await newMessage.save();
+    res.status(201).json(newMessage);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 };
 
+// Get messages between two users
 exports.getMessages = async (req, res) => {
+  const { userId1, userId2 } = req.params;
+
   try {
     const messages = await Message.find({
-      $or: [{ sender: req.user.id }, { receiver: req.user.id }]
-    })
-      .populate('sender', 'name email')
-      .populate('receiver', 'name email')
-      .sort({ timestamp: -1 });
+      $or: [
+        { sender: userId1, receiver: userId2 },
+        { sender: userId2, receiver: userId1 },
+      ],
+    }).sort({ date: 1 });
 
     res.json(messages);
   } catch (err) {

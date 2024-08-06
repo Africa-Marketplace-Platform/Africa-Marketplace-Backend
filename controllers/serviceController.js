@@ -1,5 +1,6 @@
 const Service = require('../models/Service');
-const upload = require('../config/multerConfig'); // Import the multer configuration
+const upload = require('../middleware/multerConfig'); // Import the multer configuration
+const { logActivity } = require('./activityController'); // Import the activity logger
 
 // Create a new service
 exports.createService = async (req, res) => {
@@ -28,6 +29,7 @@ exports.createService = async (req, res) => {
       });
 
       const createdService = await service.save();
+      await logActivity(req.user.id, `Created a new service: ${service.name}`); // Log the activity
       res.status(201).json(createdService);
     } catch (error) {
       console.error(error.message);
@@ -35,7 +37,6 @@ exports.createService = async (req, res) => {
     }
   });
 };
-
 
 // Get all services
 exports.getServices = async (req, res) => {
@@ -64,45 +65,46 @@ exports.getServiceById = async (req, res) => {
 
 // Update a service
 exports.updateService = async (req, res) => {
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ message: err });
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err });
+    }
+
+    const { name, description, price, isAvailable, categories, bookingInfo } = req.body;
+    let images = req.body.images || [];
+
+    if (req.files) {
+      images = req.files.map(file => file.path);
+    }
+
+    try {
+      let service = await Service.findById(req.params.id);
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
       }
-  
-      const { name, description, price, isAvailable, categories, bookingInfo } = req.body;
-      let images = req.body.images || [];
-  
-      if (req.files) {
-        images = req.files.map(file => file.path);
+
+      if (service.business.toString() !== req.user.id && req.user.role !== "admin") {
+        return res.status(401).json({ message: "User not authorized" });
       }
-  
-      try {
-        let service = await Service.findById(req.params.id);
-  
-        if (!service) {
-          return res.status(404).json({ message: "Service not found" });
-        }
-  
-        if (service.business.toString() !== req.user.id && req.user.role !== "admin") {
-          return res.status(401).json({ message: "User not authorized" });
-        }
-  
-        service.name = name || service.name;
-        service.description = description || service.description;
-        service.price = price || service.price;
-        service.images = images;
-        service.isAvailable = isAvailable !== undefined ? isAvailable : service.isAvailable;
-        service.categories = categories || service.categories;
-        service.bookingInfo = bookingInfo || service.bookingInfo;
-  
-        const updatedService = await service.save();
-        res.json(updatedService);
-      } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-  };
+
+      service.name = name || service.name;
+      service.description = description || service.description;
+      service.price = price || service.price;
+      service.images = images;
+      service.isAvailable = isAvailable !== undefined ? isAvailable : service.isAvailable;
+      service.categories = categories || service.categories;
+      service.bookingInfo = bookingInfo || service.bookingInfo;
+
+      const updatedService = await service.save();
+      await logActivity(req.user.id, `Updated service: ${service.name}`); // Log the activity
+      res.json(updatedService);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+};
 
 // Delete a service
 exports.deleteService = async (req, res) => {
@@ -114,6 +116,7 @@ exports.deleteService = async (req, res) => {
     }
 
     await service.remove();
+    await logActivity(req.user.id, `Deleted service: ${service.name}`); // Log the activity
     res.json({ msg: "Service removed" });
   } catch (err) {
     console.error(err.message);

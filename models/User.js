@@ -21,6 +21,8 @@ const UserSchema = new mongoose.Schema({
       service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
     },
   ],
+  // theme: { type: String, default: 'default' }, // Theme customization
+  // layout: { type: String, default: 'default' },
 });
 
 UserSchema.pre('save', async function (next) {

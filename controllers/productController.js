@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
-const upload = require('../config/multerConfig'); // Import the multer configuration
+const upload = require('../middleware/multerConfig'); // Import the multer configuration
+const { logActivity } = require('./activityController'); // Import the activity logger
 
 exports.createProduct = async (req, res) => {
   upload(req, res, async (err) => {
@@ -28,6 +29,7 @@ exports.createProduct = async (req, res) => {
       });
 
       await product.save();
+      await logActivity(req.user.id, `Created a new product: ${product.name}`); // Log the activity
       res.status(201).json(product);
     } catch (err) {
       console.error(err.message);
@@ -89,6 +91,7 @@ exports.updateProduct = async (req, res) => {
       product.discount = discount || product.discount;
 
       await product.save();
+      await logActivity(req.user.id, `Updated product: ${product.name}`); // Log the activity
       res.json(product);
     } catch (err) {
       console.error(err.message);
@@ -106,6 +109,7 @@ exports.deleteProduct = async (req, res) => {
     }
 
     await product.remove();
+    await logActivity(req.user.id, `Deleted product: ${product.name}`); // Log the activity
     res.json({ msg: 'Product removed' });
   } catch (err) {
     console.error(err.message);
@@ -131,6 +135,10 @@ exports.addProductReview = async (req, res) => {
 
     product.reviews.push(review);
     await product.save();
+
+    // Log the activity
+    await logActivity(req.user.id, `Added a review for product ${product.name}`);
+
     res.status(201).json(product);
   } catch (err) {
     console.error(err.message);

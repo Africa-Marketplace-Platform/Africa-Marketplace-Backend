@@ -1,5 +1,5 @@
 const Influencer = require('../models/Influencer');
-const upload = require('../config/multerConfig');
+const upload = require('../middleware/multerConfig');
 
 // Create a new influencer
 exports.createInfluencer = async (req, res) => {
@@ -62,4 +62,120 @@ exports.updateInfluencer = async (req, res) => {
       res.status(500).json({ message: 'Server error' });
     }
   });
+};
+
+exports.searchInfluencers = async (req, res) => {
+  const { niche, location, minFollowers, maxFollowers } = req.query;
+
+  try {
+    const query = {};
+    if (niche) query.niche = niche;
+    if (location) query.location = location;
+    if (minFollowers) query.followers = { $gte: minFollowers };
+    if (maxFollowers) query.followers = { ...query.followers, $lte: maxFollowers };
+
+    const influencers = await Influencer.find(query);
+    res.json(influencers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.contactInfluencer = async (req, res) => {
+  const { influencerId, terms, deadline, payment } = req.body;
+
+  try {
+    const influencer = await Influencer.findById(influencerId);
+    if (!influencer) {
+      return res.status(404).json({ msg: 'Influencer not found' });
+    }
+
+    const collaboration = {
+      business: req.user.id,
+      terms,
+      deadline,
+      payment,
+    };
+
+    influencer.collaborations.push(collaboration);
+    await influencer.save();
+    res.status(201).json(influencer);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.manageCollaboration = async (req, res) => {
+  const { collaborationId, status } = req.body;
+
+  try {
+    const influencer = await Influencer.findOne({ 'collaborations._id': collaborationId });
+    if (!influencer) {
+      return res.status(404).json({ msg: 'Collaboration not found' });
+    }
+
+    const collaboration = influencer.collaborations.id(collaborationId);
+    collaboration.status = status;
+
+    await influencer.save();
+    res.json(influencer);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.rateInfluencer = async (req, res) => {
+  const { influencerId, rating, review } = req.body;
+
+  try {
+    const influencer = await Influencer.findById(influencerId);
+    if (!influencer) {
+      return res.status(404).json({ msg: 'Influencer not found' });
+    }
+
+    const influencerRating = {
+      business: req.user.id,
+      rating,
+      review,
+    };
+
+    influencer.ratings.push(influencerRating);
+    await influencer.save();
+    res.status(201).json(influencer);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.getInfluencerById = async (req, res) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+    if (!influencer) {
+      return res.status(404).json({ msg: 'Influencer not found' });
+    }
+    res.json(influencer);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.deleteInfluencer = async (req, res) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+
+    if (!influencer) {
+      return res.status(404).json({ msg: 'Influencer not found' });
+    }
+
+    await influencer.remove();
+    res.json({ msg: 'Influencer removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 };

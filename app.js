@@ -1,6 +1,8 @@
 const express = require('express');
 const connectDB = require('./config/db');
 const passport = require('passport');
+const http = require('http');
+const socketio = require('socket.io');
 const session = require('express-session');
 const cors = require('cors');
 require('dotenv').config();
@@ -14,6 +16,11 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const influencerRoutes = require('./routes/influencerRoutes');
 const premiumRoutes = require('./routes/premiumRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const activityRoutes = require('./routes/activitylog');
+const userRoutes = require('./routes/userRoutes');
+
+
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes'); // Add wishlist routes
 
@@ -43,8 +50,38 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/influencers', influencerRoutes);
 app.use('/api/premium', premiumRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/user', userRoutes);
+
+app.use('/api/activity', activityRoutes);
+
 app.use('/api/wishlist', wishlistRoutes); // Include wishlist routes
+
+const server = http.createServer(app); // Create HTTP server
+const io = socketio(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
+
+// Socket.io connection handler
+io.on('connection', (socket) => {
+  console.log('New WebSocket connection');
+
+  socket.on('join', ({ userId }) => {
+    socket.join(userId);
+  });
+
+  socket.on('sendMessage', ({ senderId, receiverId, message }) => {
+    io.to(receiverId).emit('receiveMessage', { senderId, message });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User has left');
+  });
+});
 
 // Starting server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

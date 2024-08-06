@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, authorize, checkBusinessOwner } = require('../middleware/authMiddleware');
 const {
   createProduct,
   getProducts,
@@ -8,18 +8,18 @@ const {
   updateProduct,
   deleteProduct,
   addProductReview,
-  bulkImportProducts,
-  bulkExportProducts
 } = require('../controllers/productController');
 
-// Only business owners and admins can create and manage products
-router.post('/', protect, authorize(['business_owner', 'admin']), createProduct);
-router.get('/', getProducts);
-router.get('/:id', getProductById);
-router.put('/:id', protect, authorize(['business_owner', 'admin']), updateProduct);
-router.delete('/:id', protect, authorize(['business_owner', 'admin']), deleteProduct);
-router.post('/:id/reviews', protect, addProductReview);
-router.post('/bulk-import', protect, authorize(['admin']), bulkImportProducts);
-router.get('/bulk-export', protect, authorize(['admin']), bulkExportProducts);
+router.route('/')
+  .get(getProducts)
+  .post(protect, authorize(['business_owner', 'admin']), createProduct);
+
+router.route('/:id')
+  .get(getProductById)
+  .put(protect, authorize(['business_owner', 'admin']), checkBusinessOwner, updateProduct)
+  .delete(protect, authorize(['business_owner', 'admin']), checkBusinessOwner, deleteProduct);
+
+router.route('/:id/reviews')
+  .post(protect, addProductReview);
 
 module.exports = router;
