@@ -3,6 +3,7 @@ const Influencer = require('../models/Influencer');
 const Business = require('../models/Business');
 const upload = require('../middleware/multerConfig'); // Middleware for file uploads
 const moderateContent = require('../middleware/moderationMiddleware');
+
 // Create a new influencer
 exports.createInfluencer = async (req, res) => {
   upload(req, res, async (err) => {
@@ -10,13 +11,16 @@ exports.createInfluencer = async (req, res) => {
       return res.status(400).json({ message: err });
     }
 
-    const { name, niche } = req.body;
+    const { name, niche, location, followers, engagementRate } = req.body;
     const profilePic = req.file ? `/uploads/profilePics/${req.file.filename}` : '';
 
     try {
       const influencer = new Influencer({
         name,
         niche,
+        location,
+        followers,
+        engagementRate,
         user: req.user.id,
         profilePic,
       });
@@ -37,7 +41,7 @@ exports.updateInfluencer = async (req, res) => {
       return res.status(400).json({ message: err });
     }
 
-    const { name, niche } = req.body;
+    const { name, niche, location, followers, engagementRate } = req.body;
     const profilePic = req.file ? `/uploads/profilePics/${req.file.filename}` : '';
 
     try {
@@ -53,6 +57,9 @@ exports.updateInfluencer = async (req, res) => {
 
       influencer.name = name || influencer.name;
       influencer.niche = niche || influencer.niche;
+      influencer.location = location || influencer.location;
+      influencer.followers = followers || influencer.followers;
+      influencer.engagementRate = engagementRate || influencer.engagementRate;
       if (profilePic) {
         influencer.profilePic = profilePic;
       }
@@ -66,8 +73,9 @@ exports.updateInfluencer = async (req, res) => {
   });
 };
 
+// Search influencers based on various criteria
 exports.searchInfluencers = async (req, res) => {
-  const { niche, location, minFollowers, maxFollowers } = req.query;
+  const { niche, location, minFollowers, maxFollowers, minEngagementRate } = req.query;
 
   try {
     const query = {};
@@ -75,6 +83,7 @@ exports.searchInfluencers = async (req, res) => {
     if (location) query.location = location;
     if (minFollowers) query.followers = { $gte: minFollowers };
     if (maxFollowers) query.followers = { ...query.followers, $lte: maxFollowers };
+    if (minEngagementRate) query.engagementRate = { $gte: minEngagementRate };
 
     const influencers = await Influencer.find(query);
     res.json(influencers);
@@ -84,6 +93,7 @@ exports.searchInfluencers = async (req, res) => {
   }
 };
 
+// Contact influencer to propose a collaboration
 exports.contactInfluencer = async (req, res) => {
   const { influencerId, terms, deadline, payment } = req.body;
 
@@ -109,6 +119,7 @@ exports.contactInfluencer = async (req, res) => {
   }
 };
 
+// Manage the status of a collaboration
 exports.manageCollaboration = async (req, res) => {
   const { collaborationId, status } = req.body;
 
@@ -129,6 +140,7 @@ exports.manageCollaboration = async (req, res) => {
   }
 };
 
+// Rate an influencer after a collaboration
 exports.rateInfluencer = async (req, res) => {
   const { influencerId, rating, review } = req.body;
 
@@ -153,6 +165,7 @@ exports.rateInfluencer = async (req, res) => {
   }
 };
 
+// Get influencer by ID
 exports.getInfluencerById = async (req, res) => {
   try {
     const influencer = await Influencer.findById(req.params.id);
@@ -166,6 +179,7 @@ exports.getInfluencerById = async (req, res) => {
   }
 };
 
+// Delete an influencer
 exports.deleteInfluencer = async (req, res) => {
   try {
     const influencer = await Influencer.findById(req.params.id);
@@ -182,13 +196,14 @@ exports.deleteInfluencer = async (req, res) => {
   }
 };
 
+// Post content by an influencer
 exports.postContent = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ message: err.message });
     }
 
-    const { businessId, content } = req.body;
+    const { businessId, content, tags, contentType } = req.body;
     const media = req.file ? `/uploads/media/${req.file.filename}` : '';
 
     try {
@@ -205,7 +220,9 @@ exports.postContent = async (req, res) => {
           influencer: influencer._id,
           business: business._id,
           content,
-          media
+          media,
+          tags,
+          contentType,
         });
 
         const savedContent = await newContent.save();
@@ -221,7 +238,9 @@ exports.postContent = async (req, res) => {
 // Get content by influencer
 exports.getContentByInfluencer = async (req, res) => {
   try {
-    const content = await InfluencerContent.find({ influencer: req.params.influencerId }).populate('business', 'name');
+    const content = await InfluencerContent.find({ influencer: req.params.influencerId })
+      .populate('business', 'name')
+      .sort({ createdAt: -1 });
     res.json(content);
   } catch (error) {
     console.error(error.message);
@@ -232,7 +251,9 @@ exports.getContentByInfluencer = async (req, res) => {
 // Get content by business
 exports.getContentByBusiness = async (req, res) => {
   try {
-    const content = await InfluencerContent.find({ business: req.params.businessId }).populate('influencer', 'name');
+    const content = await InfluencerContent.find({ business: req.params.businessId })
+      .populate('influencer', 'name')
+      .sort({ createdAt: -1 });
     res.json(content);
   } catch (error) {
     console.error(error.message);

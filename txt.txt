@@ -250,3 +250,13 @@ Here are some additional features that can enhance the functionality and user ex
 - **Continuous Learning**: Implement feedback loops for AI models to continuously improve their performance.
 
 Integrating these AI features will enhance the functionality, user experience, and overall efficiency of the African Marketplace platform.
+
+
+
+Adefokun Adeoluwa
+Web3 Smart contract(solidity)
+yes
+yes (username: adecom16)
+Nigeria
+yes
+yes

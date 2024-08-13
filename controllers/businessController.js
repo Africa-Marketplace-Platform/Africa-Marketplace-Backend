@@ -11,7 +11,7 @@ exports.createBusiness = async (req, res) => {
       return res.status(400).json({ message: err });
     }
 
-    const { name, description, contactInfo, socialMediaLinks } = req.body;
+    const { name, description, contactInfo, socialMediaLinks, categories, website, operatingHours, location } = req.body;
     const logo = req.file ? `/uploads/logos/${req.file.filename}` : '';
 
     try {
@@ -20,6 +20,10 @@ exports.createBusiness = async (req, res) => {
         description,
         contactInfo,
         socialMediaLinks,
+        categories,
+        website,
+        operatingHours,
+        location,
         logo,
         owner: req.user.id,
       });
@@ -36,7 +40,12 @@ exports.createBusiness = async (req, res) => {
 // Get all businesses
 exports.getBusinesses = async (req, res) => {
   try {
-    const businesses = await Business.find().populate("owner", "name email");
+    const businesses = await Business.find()
+      .populate("owner", "name email")
+      .populate("productsOffered", "name price")
+      .populate("servicesOffered", "name price")
+      .populate("ratings.user", "name");
+      
     res.json(businesses);
   } catch (err) {
     console.error(err.message);
@@ -47,7 +56,12 @@ exports.getBusinesses = async (req, res) => {
 // Get business by ID
 exports.getBusinessById = async (req, res) => {
   try {
-    const business = await Business.findById(req.params.id).populate("owner", "name email");
+    const business = await Business.findById(req.params.id)
+      .populate("owner", "name email")
+      .populate("productsOffered", "name price")
+      .populate("servicesOffered", "name price")
+      .populate("ratings.user", "name");
+
     if (!business) {
       return res.status(404).json({ msg: "Business not found" });
     }
@@ -65,7 +79,7 @@ exports.updateBusiness = async (req, res) => {
       return res.status(400).json({ message: err });
     }
 
-    const { name, description, contactInfo, socialMediaLinks } = req.body;
+    const { name, description, contactInfo, socialMediaLinks, categories, website, operatingHours, location } = req.body;
     const logo = req.file ? `/uploads/logos/${req.file.filename}` : '';
 
     try {
@@ -83,6 +97,10 @@ exports.updateBusiness = async (req, res) => {
       business.description = description || business.description;
       business.contactInfo = contactInfo || business.contactInfo;
       business.socialMediaLinks = socialMediaLinks || business.socialMediaLinks;
+      business.categories = categories || business.categories;
+      business.website = website || business.website;
+      business.operatingHours = operatingHours || business.operatingHours;
+      business.location = location || business.location;
       if (logo) {
         business.logo = logo;
       }
@@ -116,7 +134,8 @@ exports.deleteBusiness = async (req, res) => {
 // Get products under a business
 exports.getProductsByBusiness = async (req, res) => {
   try {
-    const products = await Product.find({ business: req.params.businessId });
+    const products = await Product.find({ business: req.params.businessId })
+      .populate("business", "name");
     res.json(products);
   } catch (err) {
     console.error(err.message);
@@ -127,7 +146,8 @@ exports.getProductsByBusiness = async (req, res) => {
 // Get services under a business
 exports.getServicesByBusiness = async (req, res) => {
   try {
-    const services = await Service.find({ business: req.params.businessId });
+    const services = await Service.find({ business: req.params.businessId })
+      .populate("business", "name");
     res.json(services);
   } catch (err) {
     console.error(err.message);
@@ -157,8 +177,13 @@ exports.getBusinessAnalytics = async (req, res) => {
     const productCount = await Product.countDocuments({ business: businessId });
     const serviceCount = await Service.countDocuments({ business: businessId });
     const influencerCount = await InfluencerContent.countDocuments({ business: businessId });
+    const averageRating = await Business.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(businessId) } },
+      { $unwind: "$ratings" },
+      { $group: { _id: "$_id", averageRating: { $avg: "$ratings.rating" } } }
+    ]);
 
-    res.json({ productCount, serviceCount, influencerCount });
+    res.json({ productCount, serviceCount, influencerCount, averageRating: averageRating[0]?.averageRating || 0 });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");

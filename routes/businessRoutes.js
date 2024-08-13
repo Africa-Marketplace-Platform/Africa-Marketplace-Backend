@@ -18,19 +18,43 @@ const {
   getBusinessAnalytics,
 } = require('../controllers/businessController');
 
-// Only business owners and admins can create and manage businesses
+// Route for creating a business (only accessible to business owners and admins)
 router.post('/', protect, authorize(['business_owner', 'admin']), createBusiness);
-router.get('/', getBusinesses);
-router.get('/:id', getBusinessById);
-router.put('/:id', protect, authorize(['business_owner', 'admin']), checkBusinessOwner, updateBusiness);
-router.delete('/:id', protect, authorize(['business_owner', 'admin']), checkBusinessOwner, deleteBusiness);
 
-// New routes to get products, services, and influencers associated with a business
+// Route for getting all businesses (public)
+router.get('/', getBusinesses);
+
+// Route for getting a specific business by ID (public)
+router.get('/:id', getBusinessById);
+
+// Route for updating a business (only accessible to business owners and admins, checks ownership)
+router.put(
+  '/:id',
+  protect,
+  authorize(['business_owner', 'admin']),
+  checkBusinessOwner,
+  updateBusiness
+);
+
+// Route for deleting a business (only accessible to business owners and admins, checks ownership)
+router.delete(
+  '/:id',
+  protect,
+  authorize(['business_owner', 'admin']),
+  checkBusinessOwner,
+  deleteBusiness
+);
+
+// Route for getting all products associated with a specific business (public)
 router.get('/:businessId/products', getProductsByBusiness);
+
+// Route for getting all services associated with a specific business (public)
 router.get('/:businessId/services', getServicesByBusiness);
+
+// Route for getting all influencers associated with a specific business (public)
 router.get('/:businessId/influencers', getInfluencersByBusiness);
 
-// Route to get business analytics
+// Route for getting analytics for a specific business (public or restricted, depending on implementation)
 router.get('/:businessId/analytics', getBusinessAnalytics);
 
 module.exports = router;
