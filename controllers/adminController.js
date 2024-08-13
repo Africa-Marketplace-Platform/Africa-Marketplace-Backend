@@ -31,17 +31,18 @@ exports.deleteUser = async (req, res) => {
 
 // Report content
 exports.reportContent = async (req, res) => {
-  const { contentId, contentModel, reason } = req.body;
+  const { contentId, contentModel, reason, description } = req.body;
 
   try {
     if (!contentId || !contentModel || !reason) {
-      return res.status(400).json({ message: 'All fields are required.' });
+      return res.status(400).json({ message: 'Content ID, model, and reason are required.' });
     }
 
     const report = new Report({
       contentId,
       contentModel,
       reason,
+      description: description || '', // Optional description
       reporter: req.user.id,
     });
 
@@ -66,7 +67,7 @@ exports.getReports = async (req, res) => {
 
 // Handle a report
 exports.handleReport = async (req, res) => {
-  const { reportId, status } = req.body;
+  const { reportId, status, adminNote } = req.body;
 
   try {
     if (!reportId || !status) {
@@ -80,12 +81,13 @@ exports.handleReport = async (req, res) => {
     }
 
     // Validate status
-    const validStatuses = ['pending', 'resolved', 'dismissed'];
+    const validStatuses = ['pending', 'under_review', 'resolved', 'dismissed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status value.' });
     }
 
     report.status = status;
+    report.adminNote = adminNote || ''; // Optional admin note
     await report.save();
 
     res.json({ message: 'Report status updated successfully.', report });
