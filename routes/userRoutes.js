@@ -1,23 +1,13 @@
 const express = require('express');
+const { updateUserProfile, reportContent } = require('../controllers/userController');
+const auth = require('../middleware/auth'); // Middleware to protect routes
+
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const {
-  updateUserProfile,
-  reportContent,
-  handleReport
-} = require('../controllers/userController');
 
-// Protect all routes below
-router.use(protect);
+// Route to update user profile
+router.put('/profile', auth, updateUserProfile);
 
-// Update user profile
-router.put('/profile', updateUserProfile);
-router.post('/report', protect, reportContent);
-
-// Wishlist routes
-// router.post('/wishlist/products/:productId', addProductToWishlist);
-// router.delete('/wishlist/products/:productId', removeProductFromWishlist);
-// router.post('/wishlist/services/:serviceId', addServiceToWishlist);
-// router.delete('/wishlist/services/:serviceId', removeServiceFromWishlist);
+// Route to report content
+router.post('/report', auth, reportContent);
 
 module.exports = router;

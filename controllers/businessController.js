@@ -1,6 +1,7 @@
 const Business = require("../models/Business");
 const Product = require("../models/Product");
 const Service = require("../models/Service");
+const User = require("../models/User");
 const InfluencerContent = require("../models/InfluencerContent");
 const upload = require("../middleware/multerConfig");
 
@@ -37,6 +38,68 @@ exports.createBusiness = async (req, res) => {
   });
 };
 
+exports.searchBusinesses = async (req, res) => {
+  try {
+    const { keyword, location, categories, rating, sortBy, services } = req.query;
+
+    // Create a query object to dynamically add filters
+    let query = {};
+
+    // Keyword search
+    if (keyword) {
+      query.$or = [
+        { name: new RegExp(keyword, 'i') },
+        { description: new RegExp(keyword, 'i') },
+      ];
+    }
+
+    // Location filter
+    if (location) {
+      query["location.city"] = new RegExp(location, 'i');
+    }
+
+    // Categories filter
+    if (categories) {
+      const categoryList = categories.split(',');
+      query.categories = { $in: categoryList };
+    }
+
+    // Rating filter
+    if (rating) {
+      query.averageRating = { $gte: parseFloat(rating) };
+    }
+
+    // Services filter
+    if (services) {
+      const serviceList = services.split(',');
+      query.servicesOffered = { $in: serviceList };
+    }
+
+    // Find businesses based on filters
+    let businesses = Business.find(query);
+
+    // Sorting options
+    if (sortBy === "rating") {
+      businesses = businesses.sort({ averageRating: -1 });
+    } else if (sortBy === "popularity") {
+      businesses = businesses.sort({ stars: -1 });  // Assuming `stars` reflects popularity
+    } else if (sortBy === "proximity") {
+      // Handle proximity logic based on user's location if provided
+      // Requires geolocation and distance calculations
+    }
+
+    const results = await businesses
+      .populate("owner", "name email")
+      .populate("servicesOffered", "name")
+      .populate("productsOffered", "name");
+
+    res.json(results);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Get all businesses
 exports.getBusinesses = async (req, res) => {
   try {
@@ -45,7 +108,7 @@ exports.getBusinesses = async (req, res) => {
       .populate("productsOffered", "name price")
       .populate("servicesOffered", "name price")
       .populate("ratings.user", "name");
-      
+
     res.json(businesses);
   } catch (err) {
     console.error(err.message);
@@ -89,10 +152,12 @@ exports.updateBusiness = async (req, res) => {
         return res.status(404).json({ message: "Business not found" });
       }
 
+      // Authorization check: Only the owner or admin can update the business
       if (business.owner.toString() !== req.user.id && req.user.role !== "admin") {
         return res.status(401).json({ message: "User not authorized" });
       }
 
+      // Updating business details
       business.name = name || business.name;
       business.description = description || business.description;
       business.contactInfo = contactInfo || business.contactInfo;
@@ -187,5 +252,70 @@ exports.getBusinessAnalytics = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
+  }
+};
+
+
+exports.favoriteBusiness = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const businessId = req.params.businessId;
+
+    // Find the user
+    const user = await User.findById(userId);
+
+    // Check if the business is already favorited
+    if (user.favorites.includes(businessId)) {
+      return res.status(400).json({ message: "Business already in favorites" });
+    }
+
+    // Add business to the user's favorites
+    user.favorites.push(businessId);
+    await user.save();
+
+    res.status(200).json({ message: "Business added to favorites", favorites: user.favorites });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Remove a business from favorites
+exports.unfavoriteBusiness = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const businessId = req.params.businessId;
+
+    // Find the user
+    const user = await User.findById(userId);
+
+    // Check if the business is in favorites
+    if (!user.favorites.includes(businessId)) {
+      return res.status(400).json({ message: "Business not in favorites" });
+    }
+
+    // Remove business from the user's favorites
+    user.favorites = user.favorites.filter((fav) => fav.toString() !== businessId);
+    await user.save();
+
+    res.status(200).json({ message: "Business removed from favorites", favorites: user.favorites });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+exports.getFavoriteBusinesses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Find the user and populate their favorite businesses
+    const user = await User.findById(userId).populate("favorites");
+
+    res.status(200).json(user.favorites);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
   }
 };

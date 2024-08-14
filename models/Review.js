@@ -29,10 +29,12 @@ const reviewSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  upvoters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   downvotes: {
     type: Number,
     default: 0,
   },
+  downvoters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: {
     type: Date,
     default: Date.now,

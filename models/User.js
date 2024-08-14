@@ -21,6 +21,7 @@ const UserSchema = new mongoose.Schema({
       service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
     },
   ],
+  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Business" }],
   // theme: { type: String, default: 'default' }, // Theme customization
   // layout: { type: String, default: 'default' },
 });

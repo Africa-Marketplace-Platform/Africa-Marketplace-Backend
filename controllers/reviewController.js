@@ -14,6 +14,12 @@ exports.addReview = async (req, res) => {
       return res.status(404).json({ message: 'Business not found' });
     }
 
+    // Check if the user already left a review for this business
+    const existingReview = await Review.findOne({ user, business: businessId });
+    if (existingReview) {
+      return res.status(400).json({ message: 'You have already reviewed this business.' });
+    }
+
     // Check if the user has purchased from this business
     const orders = await Order.find({ user, business: businessId });
     const verifiedPurchase = orders.length > 0;
@@ -27,9 +33,9 @@ exports.addReview = async (req, res) => {
     });
 
     await review.save();
-    res.status(201).json(review);
+    res.status(201).json({ message: 'Review added successfully', review });
   } catch (error) {
-    console.error(error.message);
+    console.error('Add review error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -40,9 +46,10 @@ exports.getReviews = async (req, res) => {
     const reviews = await Review.find({ business: req.params.businessId })
       .populate('user', 'name')
       .sort({ createdAt: -1 });
+
     res.json(reviews);
   } catch (error) {
-    console.error(error.message);
+    console.error('Get reviews error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -56,11 +63,19 @@ exports.upvoteReview = async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
 
+    // Check if the user already upvoted this review
+    if (review.upvoters && review.upvoters.includes(req.user.id)) {
+      return res.status(400).json({ message: 'You have already upvoted this review.' });
+    }
+
+    // Add the user's ID to the upvoters array
     review.upvotes += 1;
+    review.upvoters.push(req.user.id);
+
     await review.save();
-    res.json(review);
+    res.json({ message: 'Review upvoted successfully', review });
   } catch (error) {
-    console.error(error.message);
+    console.error('Upvote review error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -74,11 +89,19 @@ exports.downvoteReview = async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
 
+    // Check if the user already downvoted this review
+    if (review.downvoters && review.downvoters.includes(req.user.id)) {
+      return res.status(400).json({ message: 'You have already downvoted this review.' });
+    }
+
+    // Add the user's ID to the downvoters array
     review.downvotes += 1;
+    review.downvoters.push(req.user.id);
+
     await review.save();
-    res.json(review);
+    res.json({ message: 'Review downvoted successfully', review });
   } catch (error) {
-    console.error(error.message);
+    console.error('Downvote review error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
