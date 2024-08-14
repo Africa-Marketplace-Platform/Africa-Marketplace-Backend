@@ -1,14 +1,14 @@
 const InfluencerContent = require('../models/InfluencerContent');
 const Influencer = require('../models/Influencer');
 const Business = require('../models/Business');
-const upload = require('../middleware/multerConfig'); // Middleware for file uploads
+const upload = require('../middleware/multerConfig');
 const moderateContent = require('../middleware/moderationMiddleware');
 
 // Create a new influencer
 exports.createInfluencer = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ message: err });
+      return res.status(400).json({ message: err.message });
     }
 
     const { name, niche, location, followers, engagementRate } = req.body;
@@ -26,10 +26,10 @@ exports.createInfluencer = async (req, res) => {
       });
 
       const createdInfluencer = await influencer.save();
-      res.status(201).json(createdInfluencer);
+      return res.status(201).json(createdInfluencer);
     } catch (error) {
       console.error(error.message);
-      res.status(500).json({ message: 'Server error' });
+      return res.status(500).json({ message: 'Server error' });
     }
   });
 };
@@ -38,14 +38,14 @@ exports.createInfluencer = async (req, res) => {
 exports.updateInfluencer = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ message: err });
+      return res.status(400).json({ message: err.message });
     }
 
     const { name, niche, location, followers, engagementRate } = req.body;
     const profilePic = req.file ? `/uploads/profilePics/${req.file.filename}` : '';
 
     try {
-      let influencer = await Influencer.findById(req.params.id);
+      const influencer = await Influencer.findById(req.params.id);
 
       if (!influencer) {
         return res.status(404).json({ message: 'Influencer not found' });
@@ -65,10 +65,10 @@ exports.updateInfluencer = async (req, res) => {
       }
 
       const updatedInfluencer = await influencer.save();
-      res.json(updatedInfluencer);
+      return res.json(updatedInfluencer);
     } catch (error) {
       console.error(error.message);
-      res.status(500).json({ message: 'Server error' });
+      return res.status(500).json({ message: 'Server error' });
     }
   });
 };
@@ -86,10 +86,10 @@ exports.searchInfluencers = async (req, res) => {
     if (minEngagementRate) query.engagementRate = { $gte: minEngagementRate };
 
     const influencers = await Influencer.find(query);
-    res.json(influencers);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.json(influencers);
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -100,7 +100,7 @@ exports.contactInfluencer = async (req, res) => {
   try {
     const influencer = await Influencer.findById(influencerId);
     if (!influencer) {
-      return res.status(404).json({ msg: 'Influencer not found' });
+      return res.status(404).json({ message: 'Influencer not found' });
     }
 
     const collaboration = {
@@ -112,10 +112,10 @@ exports.contactInfluencer = async (req, res) => {
 
     influencer.collaborations.push(collaboration);
     await influencer.save();
-    res.status(201).json(influencer);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.status(201).json(influencer);
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -126,17 +126,17 @@ exports.manageCollaboration = async (req, res) => {
   try {
     const influencer = await Influencer.findOne({ 'collaborations._id': collaborationId });
     if (!influencer) {
-      return res.status(404).json({ msg: 'Collaboration not found' });
+      return res.status(404).json({ message: 'Collaboration not found' });
     }
 
     const collaboration = influencer.collaborations.id(collaborationId);
     collaboration.status = status;
 
     await influencer.save();
-    res.json(influencer);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.json(influencer);
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -147,7 +147,7 @@ exports.rateInfluencer = async (req, res) => {
   try {
     const influencer = await Influencer.findById(influencerId);
     if (!influencer) {
-      return res.status(404).json({ msg: 'Influencer not found' });
+      return res.status(404).json({ message: 'Influencer not found' });
     }
 
     const influencerRating = {
@@ -158,10 +158,10 @@ exports.rateInfluencer = async (req, res) => {
 
     influencer.ratings.push(influencerRating);
     await influencer.save();
-    res.status(201).json(influencer);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.status(201).json(influencer);
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -170,12 +170,12 @@ exports.getInfluencerById = async (req, res) => {
   try {
     const influencer = await Influencer.findById(req.params.id);
     if (!influencer) {
-      return res.status(404).json({ msg: 'Influencer not found' });
+      return res.status(404).json({ message: 'Influencer not found' });
     }
-    res.json(influencer);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.json(influencer);
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -185,14 +185,14 @@ exports.deleteInfluencer = async (req, res) => {
     const influencer = await Influencer.findById(req.params.id);
 
     if (!influencer) {
-      return res.status(404).json({ msg: 'Influencer not found' });
+      return res.status(404).json({ message: 'Influencer not found' });
     }
 
     await influencer.remove();
-    res.json({ msg: 'Influencer removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    return res.json({ message: 'Influencer removed' });
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -226,11 +226,11 @@ exports.postContent = async (req, res) => {
         });
 
         const savedContent = await newContent.save();
-        res.status(201).json(savedContent);
+        return res.status(201).json(savedContent);
       });
     } catch (error) {
       console.error(error.message);
-      res.status(500).json({ message: 'Server error' });
+      return res.status(500).json({ message: 'Server error' });
     }
   });
 };
@@ -241,10 +241,10 @@ exports.getContentByInfluencer = async (req, res) => {
     const content = await InfluencerContent.find({ influencer: req.params.influencerId })
       .populate('business', 'name')
       .sort({ createdAt: -1 });
-    res.json(content);
+    return res.json(content);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -254,9 +254,9 @@ exports.getContentByBusiness = async (req, res) => {
     const content = await InfluencerContent.find({ business: req.params.businessId })
       .populate('influencer', 'name')
       .sort({ createdAt: -1 });
-    res.json(content);
+    return res.json(content);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error' });
   }
 };

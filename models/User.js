@@ -9,11 +9,16 @@ const UserSchema = new mongoose.Schema({
   verificationToken: { type: String },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
-  role: { type: String, default: 'user' },
+  role: {
+    type: String,
+    enum: ['regular_user', 'business_owner', 'influencer', 'admin'],
+    default: 'regular_user'
+  },
   googleId: { type: String },
   facebookId: { type: String },
   twitterId: { type: String },
   premium: { type: Boolean, default: false },
+  premiumTier: { type: String, enum: ['standard', 'gold', 'platinum'], default: 'standard' },
   date: { type: Date, default: Date.now },
   wishlist: [
     {
@@ -22,6 +27,13 @@ const UserSchema = new mongoose.Schema({
     },
   ],
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Business" }],
+  notificationPreferences: {
+    categories: [String], // Categories of interest (e.g., "electronics", "food")
+    offers: { type: Boolean, default: true },
+    newProducts: { type: Boolean, default: true },
+    newServices: { type: Boolean, default: true },
+    newBusinesses: { type: Boolean, default: true },
+  },
   // theme: { type: String, default: 'default' }, // Theme customization
   // layout: { type: String, default: 'default' },
 });

@@ -1,34 +1,35 @@
+// middleware/multerConfig.js
 const multer = require('multer');
 const path = require('path');
 
-// Set storage engine
+// Set up storage configuration
 const storage = multer.diskStorage({
-  destination: './uploads/profilePics',
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/documents/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
   },
 });
 
-// Check file type
-function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+// File filter to validate file types
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|pdf/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb('Error: Images Only!');
+    cb('Error: Only .jpeg, .jpg, .png, and .pdf files are allowed!');
   }
-}
+};
 
-// Initialize upload
+// Define the maximum file size for uploads (2MB in this example)
 const upload = multer({
-  storage,
-  limits: { fileSize: 1000000 }, // 1MB
-  fileFilter: (req, file, cb) => {
-    checkFileType(file, cb);
-  },
-}).single('profilePic');
+  storage: storage,
+  limits: { fileSize: 2000000 }, // 2MB
+  fileFilter: fileFilter,
+}).array('documents', 5); // Limit to a max of 5 files
 
 module.exports = upload;

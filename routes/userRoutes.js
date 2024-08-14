@@ -1,13 +1,18 @@
 const express = require('express');
 const { updateUserProfile, reportContent } = require('../controllers/userController');
-const auth = require('../middleware/auth'); // Middleware to protect routes
+const {
+  protect,
+  authorize,
+  checkBusinessOwner,
+  premium,
+} = require('../middleware/authMiddleware');// Middleware to protect routes
 
 const router = express.Router();
 
 // Route to update user profile
-router.put('/profile', auth, updateUserProfile);
+router.put('/profile', protect, authorize,  updateUserProfile);
 
 // Route to report content
-router.post('/report', auth, reportContent);
+router.post('/report', protect, authorize, reportContent);
 
 module.exports = router;

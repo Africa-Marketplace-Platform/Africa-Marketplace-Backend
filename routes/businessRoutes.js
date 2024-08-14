@@ -14,7 +14,9 @@ const {
   updateBusiness,
   deleteBusiness,
   getProductsByBusiness,
-  favoriteBusiness, unfavoriteBusiness, getFavoriteBusinesses,
+  favoriteBusiness,
+  unfavoriteBusiness,
+  getFavoriteBusinesses,
   getServicesByBusiness,
   getInfluencersByBusiness,
   getBusinessAnalytics,
@@ -26,10 +28,11 @@ router.post('/', protect, authorize(['business_owner', 'admin']), createBusiness
 // Route for getting all businesses (public)
 router.get('/', getBusinesses);
 
+// Route for searching businesses (public)
+router.get('/search', searchBusinesses);
+
 // Route for getting a specific business by ID (public)
 router.get('/:id', getBusinessById);
-
-router.get("/search", searchBusinesses);
 
 // Route for updating a business (only accessible to business owners and admins, checks ownership)
 router.put(
@@ -58,16 +61,21 @@ router.get('/:businessId/services', getServicesByBusiness);
 // Route for getting all influencers associated with a specific business (public)
 router.get('/:businessId/influencers', getInfluencersByBusiness);
 
-// Route for getting analytics for a specific business (public or restricted, depending on implementation)
-router.get('/:businessId/analytics', getBusinessAnalytics);
+// Route for getting analytics for a specific business (accessible to premium users and business owners)
+router.get(
+  '/:businessId/analytics',
+  protect,
+  authorize(['business_owner', 'admin', 'premium_user']),
+  getBusinessAnalytics
+);
 
-// Route to favorite a business
-router.post("/favorite/:businessId", auth, favoriteBusiness);
+// Route to favorite a business (only for registered users)
+router.post('/favorite/:businessId', protect, favoriteBusiness);
 
-// Route to unfavorite a business
-router.delete("/favorite/:businessId", auth, unfavoriteBusiness);
+// Route to unfavorite a business (only for registered users)
+router.delete('/favorite/:businessId', protect, unfavoriteBusiness);
 
-// Route to get user's favorite businesses
-router.get("/favorites", auth, getFavoriteBusinesses);
+// Route to get user's favorite businesses (only for registered users)
+router.get('/favorites', protect, getFavoriteBusinesses);
 
 module.exports = router;

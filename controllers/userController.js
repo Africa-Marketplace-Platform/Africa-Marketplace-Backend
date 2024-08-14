@@ -71,3 +71,50 @@ exports.reportContent = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+
+// Get all users (Admin only)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.status(200).json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Update any user's role or info (Admin only)
+exports.updateUser = async (req, res) => {
+  const { role, name, email, premium } = req.body;
+
+  try {
+    let user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    user.role = role || user.role;
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.premium = premium !== undefined ? premium : user.premium;
+
+    await user.save();
+    res.status(200).json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Delete any user (Admin only)
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    await user.remove();
+    res.status(200).json({ msg: 'User deleted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};

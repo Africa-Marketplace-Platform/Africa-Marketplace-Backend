@@ -26,6 +26,9 @@ const premiumRoutes = require('./routes/premiumRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const activityRoutes = require('./routes/activitylog');
+const notificationRoutes = require('./routes/notificationRoutes');
+const businessComparisonRoutes = require('./routes/businessComparisonRoutes');
+const businessVerificationRoutes = require('./routes/businessVerificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes'); // Add wishlist routes
@@ -63,7 +66,9 @@ app.use('/api/user', userRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/wishlist', wishlistRoutes); // Include wishlist routes
 app.use('/api/review', reviewRoutes); // Include wishlist routes
-
+app.use('/api/notification', notificationRoutes);
+app.use('/api/business-comparison', businessComparisonRoutes);
+app.use('/api/business-verification', businessVerificationRoutes);
 
 const server = http.createServer(app); // Create HTTP server
 const io = socketio(server, {
