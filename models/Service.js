@@ -23,7 +23,24 @@ const ServiceSchema = new mongoose.Schema({
   },
   saleEndTime: {
     type: Date,
-    required: false,
+    required: function() { return this.flashSale; },
+  },
+  promotionType: {
+    type: String,
+    enum: ['flash_sale', 'seasonal_discount', 'clearance_sale'],
+    default: null,
+  },
+  discountAmount: {
+    type: Number,
+    default: 0,
+  },
+  promotionStartDate: {
+    type: Date,
+    required: function() { return this.promotionType !== null; },
+  },
+  promotionEndDate: {
+    type: Date,
+    required: function() { return this.promotionType !== null; },
   },
   images: { type: [String], required: false },
   isAvailable: { type: Boolean, default: true },
@@ -54,6 +71,7 @@ const ServiceSchema = new mongoose.Schema({
   dateUpdated: { type: Date, default: Date.now },
 });
 
+// Middleware to set dateUpdated before each save
 ServiceSchema.pre('save', function(next) {
   this.dateUpdated = Date.now();
   next();

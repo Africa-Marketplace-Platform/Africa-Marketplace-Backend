@@ -6,10 +6,12 @@ const {
   getProducts,
   getProductById,
   updateProduct,
+  applyCouponToProduct,
   deleteProduct,
   addProductReview,
-  voteReview,  // Added for voting reviews
+  voteReview
 } = require('../controllers/productController');
+const couponController = require('../controllers/couponController'); // Ensure couponController is imported
 
 // Routes for managing products
 router.route('/')
@@ -28,5 +30,13 @@ router.route('/:id/reviews')
 // Route for voting on a product review
 router.route('/:id/reviews/vote')
   .post(protect, voteReview);
+
+// Route for applying a coupon to a product
+router.route('/:id/coupon')
+  .post(protect, authorize(['regular-user']), applyCouponToProduct);
+
+// Route for creating a new coupon
+// router.route('/coupon')
+//   .post(protect, authorize(['business_owner', 'admin']), couponController.createCoupon);
 
 module.exports = router;

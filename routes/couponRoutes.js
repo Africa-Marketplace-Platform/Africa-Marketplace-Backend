@@ -22,3 +22,7 @@ router.delete('/:id', authorize([ 'admin']), protect, couponController.deleteCou
 router.post('/apply', authorize([ 'regular-user']), protect, couponController.applyCoupon);
 
 module.exports = router;
+
+
+
+// chartjs
