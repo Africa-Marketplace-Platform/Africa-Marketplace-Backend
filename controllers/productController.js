@@ -3,6 +3,8 @@ const upload = require("../middleware/multerConfig"); // Import the multer confi
 const { logActivity } = require("./activityController"); // Import the activity logger
 const Notification = require("../models/Notification");
 // Create a new product
+
+//TODO: update the product controller using the updated models
 exports.createProduct = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {

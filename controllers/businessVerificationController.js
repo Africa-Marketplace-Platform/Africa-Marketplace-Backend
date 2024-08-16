@@ -1,4 +1,3 @@
-// controllers/businessVerificationController.js
 const BusinessVerification = require('../models/BusinessVerification');
 const Business = require('../models/Business');
 const upload = require('../middleware/multerConfig');
@@ -49,9 +48,22 @@ exports.reviewVerificationRequest = async (req, res) => {
     // Update the verification status and comments
     verificationRequest.status = status;
     verificationRequest.reviewComments = reviewComments;
+
+    // Save history of this review
+    verificationRequest.verificationHistory.push({
+      status: status,
+      reviewedBy: req.user.id, // Assuming req.user contains the admin's information
+      comments: reviewComments,
+    });
+
+    // Handle approved status
     if (status === 'approved') {
       verificationRequest.verifiedAt = Date.now();
       verificationRequest.business.verified = true; // Mark the business as verified
+
+      // Automatically set the verification expiration date
+      verificationRequest.verificationExpiresAt = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
+      
       await verificationRequest.business.save(); // Save business verification status
     }
 
@@ -71,6 +83,50 @@ exports.getPendingVerifications = async (req, res) => {
       .populate('business.owner', 'name email');
 
     res.json(pendingVerifications);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get verification details by ID
+exports.getVerificationDetails = async (req, res) => {
+  try {
+    const verificationRequest = await BusinessVerification.findById(req.params.verificationId)
+      .populate('business', 'name owner')
+      .populate('verificationHistory.reviewedBy', 'name email');
+
+    if (!verificationRequest) {
+      return res.status(404).json({ message: 'Verification request not found' });
+    }
+
+    res.json(verificationRequest);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Expire verification (automated or admin action)
+exports.expireVerification = async (req, res) => {
+  try {
+    const verificationRequest = await BusinessVerification.findById(req.params.verificationId).populate('business');
+
+    if (!verificationRequest) {
+      return res.status(404).json({ message: 'Verification request not found' });
+    }
+
+    if (verificationRequest.verificationExpiresAt && verificationRequest.verificationExpiresAt < new Date()) {
+      verificationRequest.status = 'expired';
+      verificationRequest.business.verified = false; // Mark business as no longer verified
+
+      await verificationRequest.business.save();
+      await verificationRequest.save();
+
+      res.json({ message: 'Verification expired successfully' });
+    } else {
+      res.status(400).json({ message: 'Verification is still valid or cannot be expired at this time' });
+    }
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: 'Server error' });

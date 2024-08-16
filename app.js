@@ -33,7 +33,7 @@ const userRoutes = require('./routes/userRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes'); // Add wishlist routes
 const reviewRoutes = require('./routes/reviewRoutes'); // Add wishlist routes
-
+const couponRoutes = require('./routes/couponRoutes');
 
 const app = express();
 
@@ -69,7 +69,7 @@ app.use('/api/review', reviewRoutes); // Include wishlist routes
 app.use('/api/notification', notificationRoutes);
 app.use('/api/business-comparison', businessComparisonRoutes);
 app.use('/api/business-verification', businessVerificationRoutes);
-
+app.use('/api/coupons', couponRoutes);
 const server = http.createServer(app); // Create HTTP server
 const io = socketio(server, {
   cors: {

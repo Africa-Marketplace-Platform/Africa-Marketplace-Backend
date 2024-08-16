@@ -2,6 +2,8 @@ const Service = require('../models/Service');
 const upload = require('../middleware/multerConfig'); // Import the multer configuration
 const { logActivity } = require('./activityController'); // Import the activity logger
 
+// TODO: service update about  - Create promotional campaigns such as discounts, coupons, and flash sales.
+
 // Create a new service
 exports.createService = async (req, res) => {
   upload(req, res, async (err) => {

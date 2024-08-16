@@ -12,16 +12,15 @@ const ProductSchema = new mongoose.Schema({
   discount: { 
     amount: { type: Number, default: 0 }, // Discount amount
     isPercentage: { type: Boolean, default: false }, // True if discount is in percentage
+    active: { type: Boolean, default: false }, // Track if discount is active
+    startDate: { type: Date }, // Optional discount start date
+    endDate: { type: Date }, // Optional discount end date
   },
-  dynamicPrice: {
-    type: Number,
-  },
-  flashSale: {
-    type: Boolean,
-    default: false,
-  },
-  saleEndTime: {
-    type: Date,
+  dynamicPrice: { type: Number }, // Dynamic pricing for the product
+  flashSale: { 
+    active: { type: Boolean, default: false }, 
+    startTime: { type: Date }, // Flash sale start time
+    endTime: { type: Date }, // Flash sale end time
   },
   variants: [
     {
@@ -36,9 +35,9 @@ const ProductSchema = new mongoose.Schema({
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       rating: { type: Number, required: true },
       comment: { type: String, required: true },
-      verifiedPurchase: { type: Boolean, default: false }, // New field for verified purchase
-      upvotes: { type: Number, default: 0 }, // New field for upvotes on reviews
-      downvotes: { type: Number, default: 0 }, // New field for downvotes on reviews
+      verifiedPurchase: { type: Boolean, default: false }, // Verified purchase field
+      upvotes: { type: Number, default: 0 }, // Upvotes on reviews
+      downvotes: { type: Number, default: 0 }, // Downvotes on reviews
       date: { type: Date, default: Date.now }
     },
   ],
@@ -64,16 +63,24 @@ ProductSchema.pre('save', function(next) {
 // Method to calculate final price considering discount and dynamic pricing
 ProductSchema.methods.calculateFinalPrice = function() {
   let finalPrice = this.dynamicPrice || this.price;
-  if (this.discount.amount > 0) {
+  
+  // Check if the product has an active discount
+  const now = new Date();
+  if (this.discount.active && (!this.discount.startDate || now >= this.discount.startDate) && (!this.discount.endDate || now <= this.discount.endDate)) {
     if (this.discount.isPercentage) {
       finalPrice -= (finalPrice * this.discount.amount) / 100;
     } else {
       finalPrice -= this.discount.amount;
     }
   }
+
+  // Check if there is an active flash sale
+  if (this.flashSale.active && now >= this.flashSale.startTime && now <= this.flashSale.endTime) {
+    finalPrice *= 0.8; // Example flash sale discount (20% off)
+  }
+
   return finalPrice;
 };
 
 const Product = mongoose.model('Product', ProductSchema);
-
 module.exports = Product;
