@@ -13,6 +13,10 @@ exports.getRecommendations = async (req, res) => {
     const userOrders = await Order.find({ user: userId }).populate("business");
     const userReviews = await Review.find({ user: userId }).populate("business");
 
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
     // Get all businesses the user has interacted with
     const interactedBusinessIds = [
       ...new Set([
@@ -56,9 +60,13 @@ exports.getRecommendations = async (req, res) => {
       ...collaborativeRecommendations,
     ];
 
-    res.json(combinedRecommendations);
+    if (combinedRecommendations.length === 0) {
+      return res.status(404).json({ message: "No recommendations found." });
+    }
+
+    res.status(200).json({ message: "Recommendations retrieved successfully.", recommendations: combinedRecommendations });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error('Error fetching recommendations:', error.message);
+    res.status(500).json({ message: "Server error. Could not fetch recommendations." });
   }
 };

@@ -11,7 +11,7 @@ exports.addReview = async (req, res) => {
     const business = await Business.findById(businessId);
 
     if (!business) {
-      return res.status(404).json({ message: 'Business not found' });
+      return res.status(404).json({ message: 'Business not found.' });
     }
 
     // Check if the user already left a review for this business
@@ -33,10 +33,10 @@ exports.addReview = async (req, res) => {
     });
 
     await review.save();
-    res.status(201).json({ message: 'Review added successfully', review });
+    res.status(201).json({ message: 'Review added successfully.', review });
   } catch (error) {
-    console.error('Add review error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error adding review:', error.message);
+    res.status(500).json({ message: 'Server error. Could not add the review.' });
   }
 };
 
@@ -47,10 +47,10 @@ exports.getReviews = async (req, res) => {
       .populate('user', 'name')
       .sort({ createdAt: -1 });
 
-    res.json(reviews);
+    res.status(200).json({ message: 'Reviews retrieved successfully.', reviews });
   } catch (error) {
-    console.error('Get reviews error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error retrieving reviews:', error.message);
+    res.status(500).json({ message: 'Server error. Could not retrieve reviews.' });
   }
 };
 
@@ -60,7 +60,7 @@ exports.upvoteReview = async (req, res) => {
     const review = await Review.findById(req.params.reviewId);
 
     if (!review) {
-      return res.status(404).json({ message: 'Review not found' });
+      return res.status(404).json({ message: 'Review not found.' });
     }
 
     // Check if the user already upvoted this review
@@ -73,10 +73,10 @@ exports.upvoteReview = async (req, res) => {
     review.upvoters.push(req.user.id);
 
     await review.save();
-    res.json({ message: 'Review upvoted successfully', review });
+    res.status(200).json({ message: 'Review upvoted successfully.', review });
   } catch (error) {
-    console.error('Upvote review error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error upvoting review:', error.message);
+    res.status(500).json({ message: 'Server error. Could not upvote the review.' });
   }
 };
 
@@ -86,7 +86,7 @@ exports.downvoteReview = async (req, res) => {
     const review = await Review.findById(req.params.reviewId);
 
     if (!review) {
-      return res.status(404).json({ message: 'Review not found' });
+      return res.status(404).json({ message: 'Review not found.' });
     }
 
     // Check if the user already downvoted this review
@@ -99,9 +99,9 @@ exports.downvoteReview = async (req, res) => {
     review.downvoters.push(req.user.id);
 
     await review.save();
-    res.json({ message: 'Review downvoted successfully', review });
+    res.status(200).json({ message: 'Review downvoted successfully.', review });
   } catch (error) {
-    console.error('Downvote review error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error downvoting review:', error.message);
+    res.status(500).json({ message: 'Server error. Could not downvote the review.' });
   }
 };

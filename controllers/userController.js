@@ -26,20 +26,23 @@ exports.updateUserProfile = async (req, res) => {
 
       // Respond with updated user info
       res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        premium: updatedUser.premium,
-        wishlistProducts: updatedUser.wishlistProducts,
-        wishlistServices: updatedUser.wishlistServices,
+        message: 'User profile updated successfully.',
+        user: {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          premium: updatedUser.premium,
+          wishlistProducts: updatedUser.wishlistProducts,
+          wishlistServices: updatedUser.wishlistServices,
+        },
       });
     } else {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: 'User not found.' });
     }
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating user profile:', error.message);
+    res.status(500).json({ message: 'Server error. Could not update user profile.' });
   }
 };
 
@@ -67,20 +70,19 @@ exports.reportContent = async (req, res) => {
 
     res.status(201).json({ message: 'Report submitted successfully.' });
   } catch (error) {
-    console.error('Report content error:', error.message);
-    res.status(500).json({ message: 'Server error.' });
+    console.error('Error reporting content:', error.message);
+    res.status(500).json({ message: 'Server error. Could not submit the report.' });
   }
 };
-
 
 // Get all users (Admin only)
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password');
-    res.status(200).json(users);
+    res.status(200).json({ message: 'Users retrieved successfully.', users });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error retrieving users:', err.message);
+    res.status(500).json({ message: 'Server error. Could not retrieve users.' });
   }
 };
 
@@ -90,7 +92,7 @@ exports.updateUser = async (req, res) => {
 
   try {
     let user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
 
     user.role = role || user.role;
     user.name = name || user.name;
@@ -98,10 +100,10 @@ exports.updateUser = async (req, res) => {
     user.premium = premium !== undefined ? premium : user.premium;
 
     await user.save();
-    res.status(200).json(user);
+    res.status(200).json({ message: 'User updated successfully.', user });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error updating user:', err.message);
+    res.status(500).json({ message: 'Server error. Could not update user.' });
   }
 };
 
@@ -109,12 +111,12 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
 
     await user.remove();
-    res.status(200).json({ msg: 'User deleted' });
+    res.status(200).json({ message: 'User deleted successfully.' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error deleting user:', err.message);
+    res.status(500).json({ message: 'Server error. Could not delete user.' });
   }
 };

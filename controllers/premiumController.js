@@ -32,8 +32,8 @@ exports.subscribeInfluencer = async (req, res) => {
       paymentIntentId: session.id,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('Error initiating influencer subscription:', error.message);
+    res.status(500).json({ msg: 'Server error. Could not initiate payment.' });
   }
 };
 
@@ -64,8 +64,8 @@ exports.subscribeBusinessOwner = async (req, res) => {
       paymentIntentId: session.id,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('Error initiating business owner subscription:', error.message);
+    res.status(500).json({ msg: 'Server error. Could not initiate payment.' });
   }
 };
 
@@ -79,6 +79,7 @@ exports.handleWebhook = async (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(payload, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -90,6 +91,7 @@ exports.handleWebhook = async (req, res) => {
     const user = await User.findOne({ email: userEmail });
 
     if (!user) {
+      console.error('User not found for email:', userEmail);
       return res.status(404).json({ msg: 'User not found' });
     }
 
@@ -101,7 +103,7 @@ exports.handleWebhook = async (req, res) => {
     }
 
     await user.save();
-    res.status(200).json({ msg: 'User role updated after successful payment' });
+    res.status(200).json({ msg: 'User role updated successfully after payment' });
   } else {
     res.status(400).json({ msg: 'Unhandled event type' });
   }

@@ -8,11 +8,13 @@ exports.createCoupon = async (req, res) => {
   try {
     const { code, discount, isPercentage, business, startDate, endDate, usageLimit, products, services } = req.body;
 
+    // Check for existing coupon with the same code
     const existingCoupon = await Coupon.findOne({ code });
     if (existingCoupon) {
       return res.status(400).json({ msg: 'Coupon code already exists' });
     }
 
+    // Create new coupon
     const coupon = new Coupon({
       code,
       discount: { amount: discount, isPercentage },
@@ -26,10 +28,13 @@ exports.createCoupon = async (req, res) => {
     await coupon.save();
     await logActivity(req.user.id, `Created a new coupon: ${coupon.code}`);
 
-    res.status(201).json(coupon);
+    res.status(201).json({
+      message: 'Coupon created successfully',
+      coupon
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error creating coupon: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -37,10 +42,10 @@ exports.createCoupon = async (req, res) => {
 exports.getCoupons = async (req, res) => {
   try {
     const coupons = await Coupon.find().populate('business', 'name');
-    res.json(coupons);
+    res.status(200).json(coupons);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error fetching coupons: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -51,10 +56,10 @@ exports.getCouponById = async (req, res) => {
     if (!coupon) {
       return res.status(404).json({ msg: 'Coupon not found' });
     }
-    res.json(coupon);
+    res.status(200).json(coupon);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error fetching coupon by ID: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -81,10 +86,13 @@ exports.updateCoupon = async (req, res) => {
     await coupon.save();
     await logActivity(req.user.id, `Updated coupon: ${coupon.code}`);
 
-    res.json(coupon);
+    res.status(200).json({
+      message: 'Coupon updated successfully',
+      coupon
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error updating coupon: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -100,10 +108,10 @@ exports.deleteCoupon = async (req, res) => {
     await coupon.remove();
     await logActivity(req.user.id, `Deleted coupon: ${coupon.code}`);
 
-    res.json({ msg: 'Coupon removed' });
+    res.status(200).json({ msg: 'Coupon removed successfully' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error deleting coupon: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -112,16 +120,19 @@ exports.applyCoupon = async (req, res) => {
   try {
     const { code, productId, serviceId } = req.body;
 
+    // Check for the coupon
     const coupon = await Coupon.findOne({ code });
     if (!coupon || !coupon.active) {
       return res.status(400).json({ msg: 'Invalid or inactive coupon' });
     }
 
+    // Validate coupon dates
     const now = new Date();
     if ((coupon.startDate && now < coupon.startDate) || (coupon.endDate && now > coupon.endDate)) {
       return res.status(400).json({ msg: 'Coupon is not valid at this time' });
     }
 
+    // Check if coupon usage limit has been reached
     if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
       return res.status(400).json({ msg: 'Coupon usage limit has been reached' });
     }
@@ -129,7 +140,7 @@ exports.applyCoupon = async (req, res) => {
     let finalPrice;
     let itemType;
 
-    // Apply coupon to product if productId is provided
+    // Apply coupon to product
     if (productId) {
       const product = await Product.findById(productId);
       if (!product) {
@@ -140,11 +151,11 @@ exports.applyCoupon = async (req, res) => {
         return res.status(400).json({ msg: 'Coupon not applicable to this product' });
       }
 
-      finalPrice = product.calculateFinalPrice(); // Apply any existing product discounts
-      finalPrice = coupon.applyCoupon(finalPrice);
+      finalPrice = product.calculateFinalPrice();
+      finalPrice = coupon.applyCoupon(finalPrice); // Apply coupon discount
       itemType = 'product';
 
-    // Apply coupon to service if serviceId is provided
+    // Apply coupon to service
     } else if (serviceId) {
       const service = await Service.findById(serviceId);
       if (!service) {
@@ -156,7 +167,7 @@ exports.applyCoupon = async (req, res) => {
       }
 
       finalPrice = service.price;
-      finalPrice = coupon.applyCoupon(finalPrice);
+      finalPrice = coupon.applyCoupon(finalPrice); // Apply coupon discount
       itemType = 'service';
     } else {
       return res.status(400).json({ msg: 'Either productId or serviceId is required' });
@@ -166,14 +177,14 @@ exports.applyCoupon = async (req, res) => {
     coupon.usedCount += 1;
     await coupon.save();
 
-    res.json({
+    res.status(200).json({
+      message: `Coupon applied successfully to the ${itemType}`,
       itemType,
       finalPrice,
-      coupon: coupon.code,
-      message: `Coupon applied successfully to the ${itemType}`
+      coupon: coupon.code
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error(`Error applying coupon: ${err.message}`);
+    res.status(500).json({ msg: 'Server error' });
   }
 };

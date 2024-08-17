@@ -23,6 +23,10 @@ exports.createPaymentIntentFromWishlist = async (req, res) => {
           productOrService = await Service.findById(item.itemId._id);
         }
 
+        if (!productOrService) {
+          throw new Error(`Item not found: ${item.itemType}`);
+        }
+
         return {
           itemType: item.itemType,
           itemId: productOrService._id,
@@ -33,6 +37,10 @@ exports.createPaymentIntentFromWishlist = async (req, res) => {
     );
 
     const totalPrice = items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+    if (totalPrice <= 0) {
+      return res.status(400).json({ message: 'Invalid total price' });
+    }
 
     // Create order
     const order = new Order({
@@ -48,6 +56,7 @@ exports.createPaymentIntentFromWishlist = async (req, res) => {
     wishlist.items = [];
     await wishlist.save();
 
+    // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalPrice * 100, // Amount in cents
       currency: 'usd',
@@ -55,12 +64,13 @@ exports.createPaymentIntentFromWishlist = async (req, res) => {
     });
 
     res.status(201).json({
+      message: 'Payment intent created successfully',
       clientSecret: paymentIntent.client_secret,
       orderId: savedOrder._id,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error(`Error creating payment intent: ${error.message}`);
+    res.status(500).json({ message: 'Server error. Failed to create payment intent.' });
   }
 };
 
@@ -100,15 +110,19 @@ exports.stripeWebhook = async (req, res) => {
             email_address: paymentIntent.receipt_email,
           };
           await order.save();
+          console.log(`Order ${orderId} marked as paid.`);
+        } else {
+          console.error(`Order not found for ID: ${orderId}`);
         }
       } catch (err) {
-        console.error(`Error updating order: ${err.message}`);
+        console.error(`Error updating order after payment: ${err.message}`);
       }
       break;
 
     default:
       console.log(`Unhandled event type ${event.type}`);
+      break;
   }
 
-  res.json({ received: true });
+  res.json({ message: 'Webhook event processed successfully', received: true });
 };

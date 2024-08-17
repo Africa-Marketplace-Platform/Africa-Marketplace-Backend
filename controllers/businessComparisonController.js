@@ -14,7 +14,7 @@ exports.compareBusinesses = async (req, res) => {
       .populate('productsOffered', 'name price');
 
     if (!businesses.length) {
-      return res.status(404).json({ message: 'Businesses not found' });
+      return res.status(404).json({ message: 'Businesses not found.' });
     }
 
     // Comparison metrics and relevant details for UI
@@ -41,10 +41,10 @@ exports.compareBusinesses = async (req, res) => {
 
     await businessComparison.save();
 
-    res.json({ comparison: businessComparison });
+    res.status(200).json({ message: 'Business comparison successful.', comparison: businessComparison });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Business comparison error:', error.message);
+    res.status(500).json({ message: 'Server error. Business comparison failed.' });
   }
 };
 
@@ -55,10 +55,10 @@ exports.getComparisonHistory = async (req, res) => {
       .populate('businesses.business', 'name owner')
       .sort({ createdAt: -1 });
 
-    res.json({ comparisons });
+    res.status(200).json({ message: 'Comparison history retrieved successfully.', comparisons });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get comparison history error:', error.message);
+    res.status(500).json({ message: 'Server error. Could not retrieve comparison history.' });
   }
 };
 
@@ -68,18 +68,18 @@ exports.deleteComparison = async (req, res) => {
     const comparison = await BusinessComparison.findById(req.params.id);
 
     if (!comparison) {
-      return res.status(404).json({ message: 'Comparison not found' });
+      return res.status(404).json({ message: 'Comparison not found.' });
     }
 
     if (comparison.user.toString() !== req.user._id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized to delete this comparison.' });
     }
 
     await comparison.remove();
 
-    res.json({ message: 'Comparison deleted successfully' });
+    res.status(200).json({ message: 'Comparison deleted successfully.' });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Delete comparison error:', error.message);
+    res.status(500).json({ message: 'Server error. Could not delete comparison.' });
   }
 };

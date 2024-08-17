@@ -8,21 +8,21 @@ exports.addToWishlist = async (req, res) => {
   const { itemId, itemType } = req.body;
 
   if (!['product', 'service'].includes(itemType)) {
-    return res.status(400).json({ message: 'Invalid item type' });
+    return res.status(400).json({ message: 'Invalid item type. Must be "product" or "service".' });
   }
 
   try {
-    const wishlist = await Wishlist.findOne({ user: req.user.id });
+    let wishlist = await Wishlist.findOne({ user: req.user.id });
 
     if (wishlist) {
       // Check if item already exists in wishlist
       if (wishlist.items.some(item => item.itemId.toString() === itemId && item.itemType === itemType)) {
-        return res.status(400).json({ message: 'Item already in wishlist' });
+        return res.status(400).json({ message: 'Item already in wishlist.' });
       }
 
       wishlist.items.push({ itemType, itemId });
       await wishlist.save();
-      res.json(wishlist);
+      res.status(200).json({ message: 'Item added to wishlist successfully.', wishlist });
     } else {
       const newWishlist = new Wishlist({
         user: req.user.id,
@@ -30,11 +30,11 @@ exports.addToWishlist = async (req, res) => {
       });
 
       await newWishlist.save();
-      res.status(201).json(newWishlist);
+      res.status(201).json({ message: 'Wishlist created and item added successfully.', wishlist: newWishlist });
     }
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error adding item to wishlist:', error.message);
+    res.status(500).json({ message: 'Server error. Could not add item to wishlist.' });
   }
 };
 
@@ -46,15 +46,21 @@ exports.removeFromWishlist = async (req, res) => {
     const wishlist = await Wishlist.findOne({ user: req.user.id });
 
     if (!wishlist) {
-      return res.status(404).json({ message: 'Wishlist not found' });
+      return res.status(404).json({ message: 'Wishlist not found.' });
     }
 
+    const initialLength = wishlist.items.length;
     wishlist.items = wishlist.items.filter(item => !(item.itemId.toString() === itemId && item.itemType === itemType));
+    
+    if (wishlist.items.length === initialLength) {
+      return res.status(404).json({ message: 'Item not found in wishlist.' });
+    }
+
     await wishlist.save();
-    res.json(wishlist);
+    res.status(200).json({ message: 'Item removed from wishlist successfully.', wishlist });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error removing item from wishlist:', error.message);
+    res.status(500).json({ message: 'Server error. Could not remove item from wishlist.' });
   }
 };
 
@@ -68,13 +74,13 @@ exports.getWishlist = async (req, res) => {
     });
 
     if (!wishlist) {
-      return res.status(404).json({ message: 'Wishlist not found' });
+      return res.status(404).json({ message: 'Wishlist not found.' });
     }
 
-    res.json(wishlist);
+    res.status(200).json({ message: 'Wishlist retrieved successfully.', wishlist });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error retrieving wishlist:', error.message);
+    res.status(500).json({ message: 'Server error. Could not retrieve wishlist.' });
   }
 };
 
@@ -84,7 +90,7 @@ exports.createOrderFromWishlist = async (req, res) => {
     const wishlist = await Wishlist.findOne({ user: req.user.id }).populate('items.itemId');
 
     if (!wishlist || wishlist.items.length === 0) {
-      return res.status(400).json({ message: 'Wishlist is empty' });
+      return res.status(400).json({ message: 'Wishlist is empty. Cannot create an order.' });
     }
 
     // Calculate total price
@@ -95,6 +101,10 @@ exports.createOrderFromWishlist = async (req, res) => {
           productOrService = await Product.findById(item.itemId._id);
         } else if (item.itemType === 'service') {
           productOrService = await Service.findById(item.itemId._id);
+        }
+
+        if (!productOrService) {
+          throw new Error(`Item not found: ${item.itemId}`);
         }
 
         return {
@@ -121,9 +131,9 @@ exports.createOrderFromWishlist = async (req, res) => {
     wishlist.items = [];
     await wishlist.save();
 
-    res.status(201).json(savedOrder);
+    res.status(201).json({ message: 'Order created successfully from wishlist.', order: savedOrder });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error creating order from wishlist:', error.message);
+    res.status(500).json({ message: 'Server error. Could not create order from wishlist.' });
   }
 };

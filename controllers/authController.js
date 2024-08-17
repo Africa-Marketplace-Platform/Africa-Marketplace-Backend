@@ -26,6 +26,7 @@ const sendEmail = async (email, subject, message) => {
   await transporter.sendMail(mailOptions);
 };
 
+// Register new user
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -33,7 +34,7 @@ exports.register = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
-      return res.status(400).json({ msg: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     const verificationToken = crypto.randomBytes(20).toString('hex');
@@ -46,13 +47,14 @@ exports.register = async (req, res) => {
 
     await sendEmail(email, 'Email Verification', message);
 
-    res.status(200).json({ msg: 'Verification email sent' });
+    res.status(200).json({ message: 'Verification email sent successfully.' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Registration error:', err.message);
+    res.status(500).json({ message: 'Server error. Registration failed.' });
   }
 };
 
+// Email verification
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
 
@@ -60,7 +62,7 @@ exports.verifyEmail = async (req, res) => {
     const user = await User.findOne({ verificationToken: token });
 
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid or expired token' });
+      return res.status(400).json({ message: 'Invalid or expired token.' });
     }
 
     user.isVerified = true;
@@ -68,13 +70,14 @@ exports.verifyEmail = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ msg: 'Email verified successfully' });
+    res.status(200).json({ message: 'Email verified successfully.' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Email verification error:', err.message);
+    res.status(500).json({ message: 'Server error. Email verification failed.' });
   }
 };
 
+// Login user
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -82,27 +85,28 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
     if (!user.isVerified) {
-      return res.status(400).json({ msg: 'Email not verified' });
+      return res.status(400).json({ message: 'Email not verified.' });
     }
 
     const token = generateToken(user.id);
-    res.json({ token });
+    res.status(200).json({ message: 'Login successful.', token });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Login error:', err.message);
+    res.status(500).json({ message: 'Server error. Login failed.' });
   }
 };
 
+// Forgot password
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -110,7 +114,7 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     const resetToken = crypto.randomBytes(20).toString('hex');
@@ -120,17 +124,18 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset/${resetToken}`;
-    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click on the following link, or paste this into your browser to complete the process: ${resetUrl}`;
+    const message = `Please click on the following link to reset your password: ${resetUrl}`;
 
     await sendEmail(email, 'Password Reset', message);
 
-    res.status(200).json({ msg: 'Password reset email sent' });
+    res.status(200).json({ message: 'Password reset email sent successfully.' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Forgot password error:', err.message);
+    res.status(500).json({ message: 'Server error. Failed to send password reset email.' });
   }
 };
 
+// Reset password
 exports.resetPassword = async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
@@ -142,7 +147,7 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid or expired token' });
+      return res.status(400).json({ message: 'Invalid or expired token.' });
     }
 
     user.password = password;
@@ -151,21 +156,22 @@ exports.resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ msg: 'Password reset successfully' });
+    res.status(200).json({ message: 'Password reset successfully.' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Reset password error:', err.message);
+    res.status(500).json({ message: 'Server error. Password reset failed.' });
   }
 };
 
+// Social media login callbacks
 exports.googleCallback = (req, res) => {
-  res.redirect('/dashboard');
+  res.status(200).json({ message: 'Google login successful.' });
 };
 
 exports.facebookCallback = (req, res) => {
-  res.redirect('/dashboard');
+  res.status(200).json({ message: 'Facebook login successful.' });
 };
 
 exports.twitterCallback = (req, res) => {
-  res.redirect('/dashboard');
+  res.status(200).json({ message: 'Twitter login successful.' });
 };

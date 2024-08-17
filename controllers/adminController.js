@@ -5,10 +5,13 @@ const Report = require('../models/Report');
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password -__v'); // Exclude password and version fields
-    res.json(users);
+    res.status(200).json({
+      message: 'Users retrieved successfully.',
+      users,
+    });
   } catch (err) {
     console.error('Get all users error:', err.message);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error. Failed to retrieve users.' });
   }
 };
 
@@ -22,10 +25,10 @@ exports.deleteUser = async (req, res) => {
     }
 
     await user.remove();
-    res.json({ message: 'User removed successfully.' });
+    res.status(200).json({ message: 'User removed successfully.' });
   } catch (err) {
     console.error('Delete user error:', err.message);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error. Failed to remove user.' });
   }
 };
 
@@ -50,7 +53,7 @@ exports.reportContent = async (req, res) => {
     res.status(201).json({ message: 'Report submitted successfully.' });
   } catch (error) {
     console.error('Report content error:', error.message);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error. Failed to submit report.' });
   }
 };
 
@@ -58,10 +61,13 @@ exports.reportContent = async (req, res) => {
 exports.getReports = async (req, res) => {
   try {
     const reports = await Report.find().populate('reporter', 'name email').exec();
-    res.json(reports);
+    res.status(200).json({
+      message: 'Reports retrieved successfully.',
+      reports,
+    });
   } catch (error) {
     console.error('Get reports error:', error.message);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error. Failed to retrieve reports.' });
   }
 };
 
@@ -90,9 +96,9 @@ exports.handleReport = async (req, res) => {
     report.adminNote = adminNote || ''; // Optional admin note
     await report.save();
 
-    res.json({ message: 'Report status updated successfully.', report });
+    res.status(200).json({ message: 'Report status updated successfully.', report });
   } catch (error) {
     console.error('Handle report error:', error.message);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error. Failed to update report status.' });
   }
 };
