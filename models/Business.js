@@ -8,6 +8,10 @@ const BusinessSchema = new mongoose.Schema({
   verified: { type: Boolean, default: false },
   stars: { type: Number, default: 0 },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  dashboardConfig: {
+    type: Array, // Store the layout configuration as an array of widgets or settings
+    default: [],
+  },
   logo: { type: String },
   bannerImage: { type: String }, // New field for a banner image
   location: {

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+//TODO update notification
 const notificationSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,

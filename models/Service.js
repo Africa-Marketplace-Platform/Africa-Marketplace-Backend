@@ -67,6 +67,7 @@ const ServiceSchema = new mongoose.Schema({
     metaDescription: { type: String },
     metaKeywords: { type: [String] },
   },
+  sales: { type: Number, default: 0 },
   dateCreated: { type: Date, default: Date.now },
   dateUpdated: { type: Date, default: Date.now },
 });
