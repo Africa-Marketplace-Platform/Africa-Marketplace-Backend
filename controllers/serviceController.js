@@ -203,16 +203,14 @@ exports.deleteService = async (req, res) => {
   }
 };
 
-
 // Get all reviews for a specific service
 exports.getServiceReviews = async (req, res) => {
   try {
-    const service = await Service.findById(req.params.id).populate('reviews.user', 'name email'); // Populating the user's name and email in reviews
+    const service = await Service.findById(req.params.id).populate('reviews.user', 'name email');
     if (!service) {
       return res.status(404).json({ message: 'Service not found' });
     }
 
-    // Return the reviews for the service
     res.status(200).json(service.reviews);
   } catch (err) {
     console.error(err.message);
@@ -220,15 +218,12 @@ exports.getServiceReviews = async (req, res) => {
   }
 };
 
-
-
 // Add a review to a specific service
 exports.addServiceReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
     const serviceId = req.params.id;
 
-    // Validate review input
     if (!rating || !comment) {
       return res.status(400).json({ message: 'Rating and comment are required' });
     }
@@ -238,7 +233,6 @@ exports.addServiceReview = async (req, res) => {
       return res.status(404).json({ message: 'Service not found' });
     }
 
-    // Check if the user already reviewed the service
     const alreadyReviewed = service.reviews.find(
       (review) => review.user.toString() === req.user.id.toString()
     );
@@ -247,34 +241,67 @@ exports.addServiceReview = async (req, res) => {
       return res.status(400).json({ message: 'You have already reviewed this service' });
     }
 
-    // Create a new review object
     const newReview = {
-      user: req.user.id, // Assuming you have user authentication middleware
+      user: req.user.id,
       rating: Number(rating),
       comment,
-      date: Date.now(),
     };
 
-    // Add the new review to the service's reviews array
     service.reviews.push(newReview);
 
-    // Recalculate the average rating of the service
+    // Recalculate the average rating
     service.averageRating =
-      service.reviews.reduce((acc, review) => acc + review.rating, 0) / service.reviews.length;
+      service.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      service.reviews.length;
 
-    // Save the updated service with the new review
     await service.save();
-
-    // Log activity if needed
-    await logActivity(req.user.id, `Added a review for service: ${service.name}`);
-
-    res.status(201).json({ message: 'Review added successfully', reviews: service.reviews });
+    await logActivity(req.user.id, `Added review for service: ${service.name}`);
+    res.status(201).json({ message: 'Review added successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
+// Remove a review from a service
+exports.removeServiceReview = async (req, res) => {
+  try {
+    const serviceId = req.params.id;
+    const reviewId = req.params.reviewId;
+
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    const review = service.reviews.find((r) => r._id.toString() === reviewId.toString());
+
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Check if the user owns the review or is an admin
+    if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    service.reviews = service.reviews.filter((r) => r._id.toString() !== reviewId.toString());
+
+    // Recalculate the average rating
+    service.averageRating =
+      service.reviews.length > 0
+        ? service.reviews.reduce((acc, item) => item.rating + acc, 0) /
+          service.reviews.length
+        : 0;
+
+    await service.save();
+    await logActivity(req.user.id, `Removed review for service: ${service.name}`);
+    res.json({ message: 'Review removed successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 
 // Update a review for a specific service
@@ -326,101 +353,7 @@ exports.updateServiceReview = async (req, res) => {
 };
 
 
-// Delete a review for a specific service
-exports.deleteServiceReview = async (req, res) => {
-  try {
-    const serviceId = req.params.id;
-
-    // Find the service
-    const service = await Service.findById(serviceId);
-    if (!service) {
-      return res.status(404).json({ message: 'Service not found' });
-    }
-
-    // Find the review to delete
-    const reviewIndex = service.reviews.findIndex(
-      (review) => review.user.toString() === req.user.id.toString()
-    );
-
-    if (reviewIndex === -1) {
-      return res.status(404).json({ message: 'Review not found' });
-    }
-
-    // Remove the review from the reviews array
-    service.reviews.splice(reviewIndex, 1);
-
-    // Recalculate the average rating
-    service.averageRating =
-      service.reviews.length > 0
-        ? service.reviews.reduce((acc, review) => acc + review.rating, 0) / service.reviews.length
-        : 0;
-
-    // Save the updated service
-    await service.save();
-
-    // Log activity if needed
-    await logActivity(req.user.id, `Deleted review for service: ${service.name}`);
-
-    res.status(200).json({ message: 'Review deleted successfully', reviews: service.reviews });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-
-
-
-
-// Create a Flash Sale Campaign for a service
-exports.createFlashSaleCampaign = async (req, res) => {
-  try {
-    const { discountAmount, saleEndTime } = req.body;
-    const serviceId = req.params.id;
-
-    // Validate input
-    if (!discountAmount || !saleEndTime) {
-      return res.status(400).json({ message: 'Discount amount and sale end time are required' });
-    }
-
-    // Find the service
-    const service = await Service.findById(serviceId);
-    if (!service) {
-      return res.status(404).json({ message: 'Service not found' });
-    }
-
-    // Ensure the user is authorized (business owner or admin)
-    if (service.business.toString() !== req.user.id && req.user.role !== "admin") {
-      return res.status(401).json({ message: 'User not authorized' });
-    }
-
-    // Set flash sale properties
-    service.flashSale = true;
-    service.discountAmount = discountAmount;
-    service.saleEndTime = new Date(saleEndTime);
-
-    // Save the updated service
-    await service.save();
-
-    // Log activity if needed
-    await logActivity(req.user.id, `Created flash sale campaign for service: ${service.name}`);
-
-    res.status(200).json({
-      message: `Flash sale created for service: ${service.name}`,
-      flashSaleDetails: {
-        discountAmount: service.discountAmount,
-        saleEndTime: service.saleEndTime,
-      }
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-
-
-// End Flash Sale Campaign for a service
+// End a flash sale campaign for a service
 exports.endFlashSaleCampaign = async (req, res) => {
   try {
     const serviceId = req.params.id;
@@ -431,27 +364,73 @@ exports.endFlashSaleCampaign = async (req, res) => {
       return res.status(404).json({ message: 'Service not found' });
     }
 
-    // Ensure the user is authorized (business owner or admin)
-    if (service.business.toString() !== req.user.id && req.user.role !== "admin") {
-      return res.status(401).json({ message: 'User not authorized' });
+    // Check if there is an active flash sale
+    if (!service.flashSale || !service.flashSale.isActive) {
+      return res.status(400).json({ message: 'No active flash sale found for this service' });
     }
 
-    // End the flash sale by resetting the fields
-    service.flashSale = false;
-    service.discountAmount = 0;
-    service.saleEndTime = null;
+    // End the flash sale
+    service.flashSale.isActive = false;
+    service.flashSale.endDate = new Date(); // Set end date to now
 
-    // Save the updated service
+    // Save the service with the updated flash sale status
     await service.save();
 
     // Log activity if needed
-    await logActivity(req.user.id, `Ended flash sale campaign for service: ${service.name}`);
+    await logActivity(req.user.id, `Ended flash sale for service: ${service.name}`);
 
-    res.status(200).json({
-      message: `Flash sale ended for service: ${service.name}`
-    });
+    res.status(200).json({ message: 'Flash sale ended successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+// Create a flash sale campaign for a service
+exports.createFlashSaleCampaign = async (req, res) => {
+  try {
+    const { discountPercentage, startDate, endDate } = req.body;
+    const serviceId = req.params.id;
+
+    // Validate input
+    if (!discountPercentage || !startDate || !endDate) {
+      return res.status(400).json({ message: 'All fields are required: discountPercentage, startDate, endDate' });
+    }
+
+    // Find the service
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    // Ensure there is no ongoing flash sale
+    if (service.flashSale && service.flashSale.isActive) {
+      return res.status(400).json({ message: 'An active flash sale is already ongoing for this service' });
+    }
+
+    // Calculate the discounted price
+    const discountedPrice = service.price - (service.price * (discountPercentage / 100));
+
+    // Set the flash sale details
+    service.flashSale = {
+      discountPercentage,
+      discountedPrice,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      isActive: true
+    };
+
+    // Save the service with the flash sale details
+    await service.save();
+
+    // Log activity if needed
+    await logActivity(req.user.id, `Started flash sale for service: ${service.name}`);
+
+    res.status(200).json({ message: 'Flash sale created successfully', flashSale: service.flashSale });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+

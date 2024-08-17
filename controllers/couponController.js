@@ -1,10 +1,12 @@
 const Coupon = require('../models/Coupon');
+const Product = require('../models/Product');
+const Service = require('../models/Service');
 const { logActivity } = require('./activityController'); // Import the activity logger
 
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
   try {
-    const { code, discount, isPercentage, business, startDate, endDate, usageLimit } = req.body;
+    const { code, discount, isPercentage, business, startDate, endDate, usageLimit, products, services } = req.body;
 
     const existingCoupon = await Coupon.findOne({ code });
     if (existingCoupon) {
@@ -18,6 +20,7 @@ exports.createCoupon = async (req, res) => {
       startDate,
       endDate,
       usageLimit,
+      applicableTo: { products, services }
     });
 
     await coupon.save();
@@ -58,7 +61,7 @@ exports.getCouponById = async (req, res) => {
 // Update a coupon
 exports.updateCoupon = async (req, res) => {
   try {
-    const { code, discount, isPercentage, startDate, endDate, usageLimit } = req.body;
+    const { code, discount, isPercentage, startDate, endDate, usageLimit, products, services } = req.body;
 
     let coupon = await Coupon.findById(req.params.id);
     if (!coupon) {
@@ -72,6 +75,8 @@ exports.updateCoupon = async (req, res) => {
     coupon.startDate = startDate || coupon.startDate;
     coupon.endDate = endDate || coupon.endDate;
     coupon.usageLimit = usageLimit !== undefined ? usageLimit : coupon.usageLimit;
+    coupon.applicableTo.products = products || coupon.applicableTo.products;
+    coupon.applicableTo.services = services || coupon.applicableTo.services;
 
     await coupon.save();
     await logActivity(req.user.id, `Updated coupon: ${coupon.code}`);
@@ -102,10 +107,10 @@ exports.deleteCoupon = async (req, res) => {
   }
 };
 
-// Apply a coupon to a product (during checkout)
+// Apply a coupon to a product or service
 exports.applyCoupon = async (req, res) => {
   try {
-    const { code, productId } = req.body;
+    const { code, productId, serviceId } = req.body;
 
     const coupon = await Coupon.findOne({ code });
     if (!coupon || !coupon.active) {
@@ -113,7 +118,7 @@ exports.applyCoupon = async (req, res) => {
     }
 
     const now = new Date();
-    if (coupon.startDate && now < coupon.startDate || coupon.endDate && now > coupon.endDate) {
+    if ((coupon.startDate && now < coupon.startDate) || (coupon.endDate && now > coupon.endDate)) {
       return res.status(400).json({ msg: 'Coupon is not valid at this time' });
     }
 
@@ -121,25 +126,52 @@ exports.applyCoupon = async (req, res) => {
       return res.status(400).json({ msg: 'Coupon usage limit has been reached' });
     }
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ msg: 'Product not found' });
-    }
+    let finalPrice;
+    let itemType;
 
-    let finalPrice = product.calculateFinalPrice(); // Apply any existing product discounts
+    // Apply coupon to product if productId is provided
+    if (productId) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ msg: 'Product not found' });
+      }
 
-    // Apply coupon discount
-    if (coupon.discount.isPercentage) {
-      finalPrice -= (finalPrice * coupon.discount.amount) / 100;
+      if (!coupon.applicableTo.products.includes(productId)) {
+        return res.status(400).json({ msg: 'Coupon not applicable to this product' });
+      }
+
+      finalPrice = product.calculateFinalPrice(); // Apply any existing product discounts
+      finalPrice = coupon.applyCoupon(finalPrice);
+      itemType = 'product';
+
+    // Apply coupon to service if serviceId is provided
+    } else if (serviceId) {
+      const service = await Service.findById(serviceId);
+      if (!service) {
+        return res.status(404).json({ msg: 'Service not found' });
+      }
+
+      if (!coupon.applicableTo.services.includes(serviceId)) {
+        return res.status(400).json({ msg: 'Coupon not applicable to this service' });
+      }
+
+      finalPrice = service.price;
+      finalPrice = coupon.applyCoupon(finalPrice);
+      itemType = 'service';
     } else {
-      finalPrice -= coupon.discount.amount;
+      return res.status(400).json({ msg: 'Either productId or serviceId is required' });
     }
 
     // Update coupon usage count
     coupon.usedCount += 1;
     await coupon.save();
 
-    res.json({ finalPrice, coupon: coupon.code });
+    res.json({
+      itemType,
+      finalPrice,
+      coupon: coupon.code,
+      message: `Coupon applied successfully to the ${itemType}`
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
