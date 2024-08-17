@@ -10,6 +10,12 @@ exports.submitVerificationDocuments = async (req, res) => {
     }
 
     const { businessId } = req.body;
+
+    // Check if files are provided
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No files were uploaded' });
+    }
+
     const documents = req.files.map((file) => `/uploads/documents/${file.filename}`);
 
     try {
@@ -38,6 +44,10 @@ exports.submitVerificationDocuments = async (req, res) => {
 exports.reviewVerificationRequest = async (req, res) => {
   const { verificationId, status, reviewComments } = req.body;
 
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status provided' });
+  }
+
   try {
     const verificationRequest = await BusinessVerification.findById(verificationId).populate('business');
 
@@ -49,9 +59,9 @@ exports.reviewVerificationRequest = async (req, res) => {
     verificationRequest.status = status;
     verificationRequest.reviewComments = reviewComments;
 
-    // Save history of this review
+    // Log the review in history
     verificationRequest.verificationHistory.push({
-      status: status,
+      status,
       reviewedBy: req.user.id, // Assuming req.user contains the admin's information
       comments: reviewComments,
     });
@@ -61,9 +71,9 @@ exports.reviewVerificationRequest = async (req, res) => {
       verificationRequest.verifiedAt = Date.now();
       verificationRequest.business.verified = true; // Mark the business as verified
 
-      // Automatically set the verification expiration date
+      // Automatically set the verification expiration date (1 year from now)
       verificationRequest.verificationExpiresAt = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
-      
+
       await verificationRequest.business.save(); // Save business verification status
     }
 
