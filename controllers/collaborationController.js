@@ -4,7 +4,7 @@ const { logActivity } = require('./activityController');
 // Create a collaboration request
 exports.createCollaboration = async (req, res) => {
   try {
-    const { collaboratorId, collaborationType, details } = req.body;
+    const { collaboratorId, collaborationType, details, startDate, endDate, renewalOption, terms } = req.body;
     const entityId = req.user.entityId; // This represents either a business or an influencer
 
     const collaboration = new Collaboration({
@@ -13,6 +13,10 @@ exports.createCollaboration = async (req, res) => {
       collaborationType,
       details,
       status: 'pending', // Pending until accepted
+      startDate,
+      endDate,
+      renewalOption,
+      terms,
     });
 
     await collaboration.save();
