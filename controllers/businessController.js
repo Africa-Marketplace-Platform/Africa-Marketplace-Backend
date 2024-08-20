@@ -420,3 +420,20 @@ exports.adminDeleteBusiness = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+
+// Function to get followers of a business
+exports.getBusinessFollowers = async (req, res) => {
+  try {
+    const business = await Business.findById(req.params.businessId).populate('followers', 'name email');
+
+    if (!business) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    res.status(200).json(business.followers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};

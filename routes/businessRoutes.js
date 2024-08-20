@@ -20,6 +20,7 @@ const {
   getServicesByBusiness,
   getInfluencersByBusiness,
   getBusinessAnalytics,
+  getBusinessFollowers, // Newly added function
 } = require('../controllers/businessController');
 
 // Route for creating a business (only accessible to business owners and admins)
@@ -77,5 +78,8 @@ router.delete('/favorite/:businessId', protect, unfavoriteBusiness);
 
 // Route to get user's favorite businesses (only for registered users)
 router.get('/favorites', protect, getFavoriteBusinesses);
+
+// Route to get all followers of a specific business (public)
+router.get('/:businessId/followers', getBusinessFollowers); // Newly added route
 
 module.exports = router;

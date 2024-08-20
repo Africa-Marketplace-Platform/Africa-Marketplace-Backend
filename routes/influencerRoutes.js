@@ -8,6 +8,7 @@ const {
   deleteInfluencer,
   searchInfluencers,
   contactInfluencer,
+  getFollowers,
   manageCollaboration,
   rateInfluencer,
   postContent,
@@ -31,5 +32,5 @@ router.post('/rate', protect, authorize(['business', 'admin']), rateInfluencer);
 router.post('/content', protect, authorize(['influencer']), postContent); // Post Content as an Influencer
 router.get('/content/influencer/:influencerId', protect, getContentByInfluencer); // Get Content by Influencer
 router.get('/content/business/:businessId', protect, getContentByBusiness); // Get Content by Business
-
+router.get('/:influencerId/followers', protect, getFollowers);
 module.exports = router;
