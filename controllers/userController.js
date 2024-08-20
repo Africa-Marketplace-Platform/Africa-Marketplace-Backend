@@ -35,6 +35,8 @@ exports.updateUserProfile = async (req, res) => {
           premium: updatedUser.premium,
           wishlistProducts: updatedUser.wishlistProducts,
           wishlistServices: updatedUser.wishlistServices,
+          followingBusinesses: updatedUser.followingBusinesses, // Added
+          followingInfluencers: updatedUser.followingInfluencers, // Added
         },
       });
     } else {
@@ -43,6 +45,54 @@ exports.updateUserProfile = async (req, res) => {
   } catch (error) {
     console.error('Error updating user profile:', error.message);
     res.status(500).json({ message: 'Server error. Could not update user profile.' });
+  }
+};
+
+// Follow or unfollow a business
+exports.followBusiness = async (req, res) => {
+  const { businessId } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (user.followingBusinesses.includes(businessId)) {
+      // If the business is already followed, unfollow it
+      user.followingBusinesses = user.followingBusinesses.filter(id => id.toString() !== businessId);
+      await user.save();
+      res.json({ message: 'Business unfollowed successfully.' });
+    } else {
+      // If the business is not followed, follow it
+      user.followingBusinesses.push(businessId);
+      await user.save();
+      res.json({ message: 'Business followed successfully.' });
+    }
+  } catch (error) {
+    console.error('Error following/unfollowing business:', error.message);
+    res.status(500).json({ message: 'Server error. Could not follow/unfollow business.' });
+  }
+};
+
+// Follow or unfollow an influencer
+exports.followInfluencer = async (req, res) => {
+  const { influencerId } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (user.followingInfluencers.includes(influencerId)) {
+      // If the influencer is already followed, unfollow them
+      user.followingInfluencers = user.followingInfluencers.filter(id => id.toString() !== influencerId);
+      await user.save();
+      res.json({ message: 'Influencer unfollowed successfully.' });
+    } else {
+      // If the influencer is not followed, follow them
+      user.followingInfluencers.push(influencerId);
+      await user.save();
+      res.json({ message: 'Influencer followed successfully.' });
+    }
+  } catch (error) {
+    console.error('Error following/unfollowing influencer:', error.message);
+    res.status(500).json({ message: 'Server error. Could not follow/unfollow influencer.' });
   }
 };
 

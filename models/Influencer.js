@@ -6,7 +6,7 @@ const InfluencerSchema = new mongoose.Schema({
   profilePic: { type: String }, // Profile picture URL
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   location: { type: String },
-  followers: { type: Number, default: 0 },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // New field for followers list
   engagementRate: { type: Number, default: 0 },
   bio: { type: String }, // Added field for influencer bio
   socialMediaLinks: { type: [String] }, // Added field for social media links
@@ -42,9 +42,9 @@ const InfluencerSchema = new mongoose.Schema({
 
 // Pre-save middleware to calculate engagement rate if followers and ratings are available
 InfluencerSchema.pre('save', function (next) {
-  if (this.followers && this.ratings.length) {
+  if (this.followers.length && this.ratings.length) {
     const totalRating = this.ratings.reduce((acc, rating) => acc + rating.rating, 0);
-    this.engagementRate = (totalRating / this.ratings.length) / this.followers;
+    this.engagementRate = (totalRating / this.ratings.length) / this.followers.length;
   }
   next();
 });

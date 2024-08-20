@@ -11,7 +11,7 @@ exports.createInfluencer = async (req, res) => {
       return res.status(400).json({ message: err.message });
     }
 
-    const { name, niche, location, followers, engagementRate } = req.body;
+    const { name, niche, location, followers, engagementRate, bio, socialMediaLinks } = req.body;
     const profilePic = req.file ? `/uploads/profilePics/${req.file.filename}` : '';
 
     try {
@@ -21,6 +21,8 @@ exports.createInfluencer = async (req, res) => {
         location,
         followers,
         engagementRate,
+        bio,
+        socialMediaLinks,
         user: req.user.id,
         profilePic,
       });
@@ -41,7 +43,7 @@ exports.updateInfluencer = async (req, res) => {
       return res.status(400).json({ message: err.message });
     }
 
-    const { name, niche, location, followers, engagementRate } = req.body;
+    const { name, niche, location, followers, engagementRate, bio, socialMediaLinks } = req.body;
     const profilePic = req.file ? `/uploads/profilePics/${req.file.filename}` : '';
 
     try {
@@ -60,6 +62,8 @@ exports.updateInfluencer = async (req, res) => {
       influencer.location = location || influencer.location;
       influencer.followers = followers || influencer.followers;
       influencer.engagementRate = engagementRate || influencer.engagementRate;
+      influencer.bio = bio || influencer.bio;
+      influencer.socialMediaLinks = socialMediaLinks || influencer.socialMediaLinks;
       if (profilePic) {
         influencer.profilePic = profilePic;
       }

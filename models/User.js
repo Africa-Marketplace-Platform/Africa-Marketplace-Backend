@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
   verificationToken: { type: String },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
+  
   role: {
     type: String,
     enum: ['regular_user', 'business_owner', 'influencer', 'admin'],
@@ -27,6 +28,8 @@ const UserSchema = new mongoose.Schema({
     },
   ],
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Business" }],
+  followingBusinesses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Business" }], // New field for following businesses
+  followingInfluencers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Influencer" }], // New field for following influencers
   notificationPreferences: {
     categories: [String], // Categories of interest (e.g., "electronics", "food")
     offers: { type: Boolean, default: true },
@@ -34,8 +37,6 @@ const UserSchema = new mongoose.Schema({
     newServices: { type: Boolean, default: true },
     newBusinesses: { type: Boolean, default: true },
   },
-  // theme: { type: String, default: 'default' }, // Theme customization
-  // layout: { type: String, default: 'default' },
 });
 
 UserSchema.pre('save', async function (next) {

@@ -51,6 +51,7 @@ const BusinessSchema = new mongoose.Schema({
       date: { type: Date, default: Date.now },
     },
   ], // New field for business reviews
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // New field for followers list
   createdAt: { type: Date, default: Date.now }, // Renamed for consistency
   updatedAt: { type: Date, default: Date.now }, // New field for tracking updates
 });
