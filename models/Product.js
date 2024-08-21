@@ -37,7 +37,7 @@ const ProductSchema = new mongoose.Schema({
       comment: { type: String, required: true },
       verifiedPurchase: { type: Boolean, default: false }, // Verified purchase field
       upvotes: { type: Number, default: 0 }, // Upvotes on reviews
-      downvotes: { type: Number, default: 0 }, // Downvotes on reviews
+      downvotes: { type: Number, default: 0 }, 
       date: { type: Date, default: Date.now }
     },
   ],
