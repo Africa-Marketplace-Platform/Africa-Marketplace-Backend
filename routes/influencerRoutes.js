@@ -18,7 +18,7 @@ const {
 
 // Influencer Management Routes
 router.post('/', protect, authorize(['influencer', 'admin']), createInfluencer); // Create Influencer
-router.get('/search', searchInfluencers); // Search Influencers
+router.get('/search', searchInfluencers); // 
 router.get('/:id', getInfluencerById); // Get Influencer by ID
 router.put('/:id', protect, authorize(['influencer', 'admin']), updateInfluencer); // Update Influencer
 router.delete('/:id', protect, authorize(['admin']), deleteInfluencer); // Delete Influencer (Admin only)
